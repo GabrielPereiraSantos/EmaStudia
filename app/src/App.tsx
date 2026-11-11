@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { db } from './db/db';
 import { useLive } from './lib/useLive';
 import { startAutoSync } from './lib/sync';
+import { UpdateBanner } from './components/UpdateBanner';
 import { Benvenuta } from './pages/Benvenuta';
 import { Impostazioni } from './pages/Impostazioni';
 import { BottomNav } from './components/BottomNav';
@@ -84,12 +85,14 @@ export function App() {
   if (!ready)
     return (
       <div className="app">
+        <UpdateBanner />
         <Benvenuta />
       </div>
     );
 
   return (
     <div className="app">
+      <UpdateBanner />
       <main>{page}</main>
       {tab && <BottomNav active={tab} />}
     </div>

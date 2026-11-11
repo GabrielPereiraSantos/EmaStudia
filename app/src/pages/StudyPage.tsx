@@ -1,6 +1,13 @@
 import { useRef, useState } from 'react';
 import { ConfirmSheet } from '../components/ConfirmSheet';
-import { geminiSummary, openChatGpt, PLAN_B_MESSAGE, type GeminiError } from '../lib/gemini';
+import { Thinking } from '../components/Thinking';
+import {
+  geminiSummary,
+  openChatGpt,
+  PLAN_B_MESSAGE,
+  THINKING_TEXT,
+  type GeminiError,
+} from '../lib/gemini';
 import { chatGptSummaryPrompt } from '../plan/quizzes';
 import { format, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -175,7 +182,7 @@ export function StudyPage({ id }: { id: number }) {
             disabled={summaryBusy}
             onClick={() => void makeSummary()}
           >
-            {summaryBusy ? 'Sto scrivendo…' : 'Genera con Gemini'}
+            {summaryBusy ? THINKING_TEXT : 'Genera con Gemini'}
           </button>
         </div>
         <textarea
@@ -190,6 +197,7 @@ export function StudyPage({ id }: { id: number }) {
             if (e.target.value !== study.summary) void setSummary(id, e.target.value);
           }}
         />
+        {summaryBusy && <Thinking />}
         {summaryFail && (
           <div className="planb">
             <p className="muted">{PLAN_B_MESSAGE[summaryFail]}</p>

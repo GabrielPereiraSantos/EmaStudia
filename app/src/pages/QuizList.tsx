@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { PlanB } from '../components/PlanB';
+import { Thinking } from '../components/Thinking';
 import { db } from '../db/db';
 import type { Quiz, Study } from '../db/types';
 import { SUBJECT_COLORS } from '../lib/colors';
@@ -69,9 +70,7 @@ export function QuizList() {
                   </button>
                 )}
               </div>
-              {q.status === 'in-attesa' && !q.failReason && (
-                <p className="muted">Sto preparando le domande…</p>
-              )}
+              {q.status === 'in-attesa' && !q.failReason && <Thinking />}
               {q.status === 'in-attesa' && q.failReason && <PlanB quiz={q} onToast={flash} />}
             </div>
           );

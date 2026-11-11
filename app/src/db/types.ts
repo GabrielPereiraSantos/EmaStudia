@@ -117,7 +117,7 @@ export interface Quiz {
   status: 'in-attesa' | 'disponibile' | 'completato';
   /** gemini e chatgpt valem moedinhas; manuale ("Scrivi tu") não. */
   source?: 'gemini' | 'chatgpt' | 'manuale';
-  failReason?: 'quota' | 'errore' | 'offline';
+  failReason?: 'quota' | 'timeout' | 'errore' | 'offline';
   createdAt: string;
 }
 

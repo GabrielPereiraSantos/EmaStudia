@@ -153,7 +153,8 @@ npx wrangler secret put GEMINI_API_KEY -c worker/wrangler.toml
 
    **Se a cota gratuita do Flash for pouca**, use a versão **Flash-Lite** (mais leve; costuma ter cota gratuita maior; confira no AI Studio), por exemplo `GEMINI_MODEL = "gemini-2.5-flash-lite"`. Depois de trocar, publique o Worker de novo (passo 7).
 
-5. O limite diário do app é `GEMINI_DAILY_LIMIT` (padrão `20`), no mesmo arquivo. A contagem vira à meia-noite no fuso do iPhone dela, e o uso aparece em **Impostazioni → Gemini**. Se o Gemini falhar ou o limite acabar, o app oferece o plano B (ChatGPT ou escrever à mão).
+5. **Velocidade:** o Worker pede ao Gemini o **thinking no mínimo** (respostas rápidas) e espera no máximo **50 s**; o app espera até 60 s e mostra "Gemini sta pensando…". O campo de thinking é escolhido pelo nome do modelo (`gemini-3…` e apelidos `…-latest`: nível mínimo; `gemini-2.5-flash` e `-flash-lite`: orçamento 0); se o modelo recusar, o Worker tenta a próxima configuração sozinho.
+6. O limite diário do app é `GEMINI_DAILY_LIMIT` (padrão `20`), no mesmo arquivo. A contagem vira à meia-noite no fuso do iPhone dela, e o uso aparece em **Impostazioni → Gemini**. Se o Gemini falhar ou o limite acabar, o app oferece o plano B (ChatGPT ou escrever à mão).
 
 ### 7. Publicar o Worker
 
@@ -221,6 +222,10 @@ npx wrangler tail -c worker/wrangler.toml
 - App: basta `git push`; o Pages publica sozinho.
 - Worker: `npm run deploy -w worker`. Se houver migração nova: `npm run db:migrate -w worker`.
 
+**Como a Ema recebe a versão nova:** depois do deploy, ao abrir o app (ou voltar para ele) aparece no topo **"Nuova versione disponibile"** com o botão **Aggiorna**. Tocar em Aggiorna carrega a versão nova na hora; os dados não se perdem. O app procura versão nova a cada hora e toda vez que volta para a tela.
+
+Se ela estava numa versão **antiga** (anterior a esse aviso), a versão nova assume sozinha: basta fechar e abrir o app de novo. Se mesmo assim a tela não mudar: Ajustes do iPhone → Safari → Avançado → Dados de sites → apague só o endereço do app **depois de fazer o backup** (apagar o app ou os dados dele apaga os estudos).
+
 ## Backup e restauração
 
 Os dados da Ema ficam **só no iPhone dela** (Impostazioni → Backup).
@@ -275,10 +280,13 @@ Se o Worker usar um **domínio próprio** (e não `*.workers.dev`), troque `http
 
 ### Se algo não funcionar
 
-| Sintoma                             | O que ver                                                                                                                                                                                   |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Codice non valido" na Benvenuta    | O código digitado é o mesmo do `ACCESS_CODE`? (`npx wrangler secret put ACCESS_CODE` troca.)                                                                                                |
-| "Non riesco a collegarmi al server" | `VITE_API_URL` certo no Pages? `ALLOWED_ORIGIN` igual ao endereço do app? CSP com o domínio do Worker?                                                                                      |
-| Notificação não chega               | Notificações ligadas em Impostazioni e no iPhone (Ajustes → Notificações → Ema studia); app aberto pelo **ícone**; `npx wrangler tail -c worker/wrangler.toml` mostra as contagens do cron. |
-| Gemini não responde                 | `GEMINI_API_KEY` cadastrada? `GEMINI_MODEL` com um nome que existe? Cota do dia (`GEMINI_DAILY_LIMIT`)? O app oferece o plano B (ChatGPT ou escrever à mão).                                |
-| "Troppi tentativi"                  | O limite por minuto do Worker: espere um minuto e tente de novo.                                                                                                                            |
+| Sintoma                                                         | O que ver                                                                                                                                                                                                                                                                                                                         |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Codice non valido" na Benvenuta                                | O código digitado é o mesmo do `ACCESS_CODE`? (`npx wrangler secret put ACCESS_CODE` troca.)                                                                                                                                                                                                                                      |
+| "Non riesco a collegarmi al server"                             | `VITE_API_URL` certo no Pages? `ALLOWED_ORIGIN` igual ao endereço do app? CSP com o domínio do Worker?                                                                                                                                                                                                                            |
+| Notificação não chega                                           | Notificações ligadas em Impostazioni e no iPhone (Ajustes → Notificações → Ema studia); app aberto pelo **ícone**; `npx wrangler tail -c worker/wrangler.toml` mostra as contagens do cron.                                                                                                                                       |
+| Gemini não responde                                             | `GEMINI_API_KEY` cadastrada? `GEMINI_MODEL` com um nome que existe? Cota do dia (`GEMINI_DAILY_LIMIT`)? O app oferece o plano B (ChatGPT ou escrever à mão).                                                                                                                                                                      |
+| "Gemini sta pensando…" e depois "Gemini ci sta mettendo troppo" | O Worker esperou 50 s e o Gemini não respondeu (o app espera até 60 s). Tente de novo; se repetir, troque `GEMINI_MODEL` por um modelo mais rápido (Flash-Lite) e veja o log abaixo.                                                                                                                                              |
+| "Gemini non ha risposto questa volta"                           | O Gemini devolveu um erro. Rode `npx wrangler tail -c worker/wrangler.toml` e procure a linha `{"at":"gemini",...}`: ela mostra `http` (status), `geminiStatus` e `message` (o motivo dito pelo Google, ex. `API key not valid`, `model not found`), `model`, `thinking` e `ms` (duração). O conteúdo enviado nunca é registrado. |
+| "Sembra che tu sia offline"                                     | Só aparece com o iPhone realmente sem internet (ou rede que falhou). Erro do Gemini e demora têm mensagem própria.                                                                                                                                                                                                                |
+| "Troppi tentativi"                                              | O limite por minuto do Worker: espere um minuto e tente de novo.                                                                                                                                                                                                                                                                  |

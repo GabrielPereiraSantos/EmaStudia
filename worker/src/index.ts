@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
-import { cors } from 'hono/cors';
 import { createMiddleware } from 'hono/factory';
+import { preflight, withCors } from './cors';
 import { runCron } from './cron';
 import { deleteDevice, dropSubscription, getDevice, saveSchedule, saveSubscription } from './db';
 import type { Env } from './env';
@@ -39,22 +39,19 @@ const limit = (name: keyof typeof LIMITS_PER_MINUTE) =>
     await next();
   });
 
+// CORS em TODAS as respostas (inclusive 4xx/5xx) e no preflight. Fica por fora de tudo.
+app.use('*', async (c, next) => {
+  if (c.req.method === 'OPTIONS') return preflight(c.req.raw, c.env);
+  await next();
+  c.res = withCors(c.res, c.req.raw, c.env);
+});
+
 app.use('*', async (c, next) => {
   await next();
   c.header('X-Content-Type-Options', 'nosniff');
   c.header('Cache-Control', 'no-store');
   c.header('Referrer-Policy', 'no-referrer');
 });
-
-// CORS só para a origem do Pages.
-app.use('*', (c, next) =>
-  cors({
-    origin: (origin) => (c.env.ALLOWED_ORIGIN && origin === c.env.ALLOWED_ORIGIN ? origin : null),
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'X-Access-Code'],
-    maxAge: 86400,
-  })(c, next),
-);
 
 // Código de acesso em todas as rotas (o preflight OPTIONS não leva cabeçalhos próprios).
 app.use('*', async (c, next) => {
@@ -137,16 +134,43 @@ app.post('/api/gemini/:kind', async (c) => {
   const used = await reserveUsage(c.env.DB, day, limit);
   if (used === null) return c.json({ error: 'quota', used: limit, limit }, 429);
 
-  const raw = await callGemini(
+  const t0 = Date.now();
+  const r = await callGemini(
     c.env.GEMINI_API_KEY,
     c.env.GEMINI_MODEL,
     buildPrompt(req),
     responseSchema(req.kind),
+    {
+      kind: req.kind,
+    },
   );
-  const result = req.kind === 'riassunto' ? validateSummary(raw) : validateQuestions(req.kind, raw);
-  if (!result) {
+  const fail = async (status: 429 | 502 | 504, body: Record<string, unknown>) => {
     await refundUsage(c.env.DB, day); // falhou: não conta
-    return c.json({ error: 'gemini' }, 502);
+    return c.json(body, status);
+  };
+  if (!r.ok) {
+    if (r.reason === 'timeout') return fail(504, { error: 'gemini-timeout' });
+    if (r.reason === 'http' && r.status === 429) return fail(429, { error: 'gemini-quota' });
+    return fail(502, {
+      error: 'gemini',
+      reason: r.reason,
+      ...(r.reason === 'http' ? { http: r.status } : {}),
+    });
+  }
+  const result =
+    req.kind === 'riassunto' ? validateSummary(r.data) : validateQuestions(req.kind, r.data);
+  if (!result) {
+    console.log(
+      JSON.stringify({
+        at: 'gemini',
+        kind: req.kind,
+        model: r.model,
+        ok: false,
+        reason: 'invalid-output',
+        ms: Date.now() - t0,
+      }),
+    );
+    return fail(502, { error: 'gemini', reason: 'invalid-output' });
   }
   return c.json(
     req.kind === 'riassunto'
@@ -162,7 +186,15 @@ app.onError((err, c) => {
 });
 
 export default {
-  fetch: app.fetch,
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    try {
+      return await app.fetch(request, env, ctx);
+    } catch (err) {
+      // rede de segurança: mesmo uma exceção inesperada sai com CORS (e sem detalhes)
+      console.error(`fatal: ${(err as Error).name}`);
+      return withCors(Response.json({ error: 'server' }, { status: 500 }), request, env);
+    }
+  },
   scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(runCron(env, Date.now()).then(() => undefined));
   },

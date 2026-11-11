@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Env } from '../src/env';
 import {
   buildPrompt,
+  callGemini,
+  thinkingCandidates,
   parseGeminiRequest,
   reserveUsage,
   refundUsage,
@@ -231,5 +233,256 @@ describe('rotas do Gemini', () => {
       env,
     );
     expect(r.status).toBe(401);
+  });
+});
+
+const OK_BODY = geminiReply({ questions: [0, 1, 2, 3, 4].map((i) => q(i)) });
+const errReply = (status: number, error: Record<string, unknown>) =>
+  new Response(JSON.stringify({ error }), { status });
+const sentBody = (f: ReturnType<typeof vi.fn>, n = 0) =>
+  JSON.parse(((f.mock.calls[n] as unknown[])[1] as { body: string }).body);
+
+describe('thinking no mínimo', () => {
+  it('cada família usa o campo certo', () => {
+    expect(thinkingCandidates('gemini-2.5-flash')[0].config).toEqual({ thinkingBudget: 0 });
+    expect(thinkingCandidates('gemini-2.5-flash-lite')[0].config).toEqual({ thinkingBudget: 0 });
+    expect(thinkingCandidates('gemini-3-flash-preview')[0].config).toEqual({
+      thinkingLevel: 'minimal',
+    });
+    expect(thinkingCandidates('gemini-flash-latest')[0].config).toEqual({
+      thinkingLevel: 'minimal',
+    });
+    expect(thinkingCandidates('gemini-2.5-pro')[0].config).toEqual({ thinkingBudget: 128 }); // não desliga
+  });
+  it('a chamada leva o thinkingConfig (riassunto, quiz e esercizi usam a mesma função)', async () => {
+    const f = vi.fn(async () => OK_BODY.clone());
+    await callGemini(
+      'k',
+      'gemini-2.5-flash',
+      'p',
+      {},
+      { fetcher: f as unknown as typeof fetch, log: () => {} },
+    );
+    expect(sentBody(f).generationConfig.thinkingConfig).toEqual({ thinkingBudget: 0 });
+  });
+  it('se o modelo recusa o campo, tenta o próximo (e lembra o que funcionou)', async () => {
+    const f = vi
+      .fn()
+      .mockResolvedValueOnce(
+        errReply(400, {
+          code: 400,
+          status: 'INVALID_ARGUMENT',
+          message: 'Unknown name "thinkingLevel": Cannot find field.',
+        }),
+      )
+      .mockResolvedValue(OK_BODY.clone());
+    const r = await callGemini(
+      'k',
+      'gemini-meuapelido-latest',
+      'p',
+      {},
+      { fetcher: f as unknown as typeof fetch, log: () => {} },
+    );
+    expect(r.ok).toBe(true);
+    expect(f).toHaveBeenCalledTimes(2);
+    expect(sentBody(f, 0).generationConfig.thinkingConfig).toEqual({ thinkingLevel: 'minimal' });
+    expect(sentBody(f, 1).generationConfig.thinkingConfig).toEqual({ thinkingBudget: 0 });
+    // próxima chamada já parte da configuração que funcionou
+    const g = vi.fn(async () => OK_BODY.clone());
+    await callGemini(
+      'k',
+      'gemini-meuapelido-latest',
+      'p',
+      {},
+      { fetcher: g as unknown as typeof fetch, log: () => {} },
+    );
+    expect(sentBody(g).generationConfig.thinkingConfig).toEqual({ thinkingBudget: 0 });
+  });
+  it('um 400 que não é sobre thinking não é repetido', async () => {
+    const f = vi.fn(async () =>
+      errReply(400, { code: 400, status: 'INVALID_ARGUMENT', message: 'API key not valid.' }),
+    );
+    const r = await callGemini(
+      'k',
+      'gemini-outro-latest',
+      'p',
+      {},
+      { fetcher: f as unknown as typeof fetch, log: () => {} },
+    );
+    expect(r).toMatchObject({ ok: false, reason: 'http', status: 400 });
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('log do Gemini (sem o conteúdo)', () => {
+  it('erro HTTP: status, código e mensagem do Gemini e duração', async () => {
+    const lines: string[] = [];
+    const f = vi.fn(async () =>
+      errReply(503, {
+        code: 503,
+        status: 'UNAVAILABLE',
+        message: 'The model is overloaded.\nTry later.',
+      }),
+    );
+    await callGemini(
+      'chave-secreta',
+      'gemini-2.5-flash',
+      'TESTO-PRIVATO-DA-EMA',
+      {},
+      { fetcher: f as unknown as typeof fetch, log: (l) => lines.push(l), kind: 'riassunto' },
+    );
+    const log = JSON.parse(lines[0]);
+    expect(log).toMatchObject({
+      at: 'gemini',
+      kind: 'riassunto',
+      model: 'gemini-2.5-flash',
+      ok: false,
+      reason: 'http',
+      http: 503,
+      geminiStatus: 'UNAVAILABLE',
+      geminiCode: 503,
+      message: 'The model is overloaded. Try later.',
+    });
+    expect(typeof log.ms).toBe('number');
+    expect(lines.join()).not.toMatch(/TESTO-PRIVATO|chave-secreta/);
+  });
+  it('sucesso, resposta vazia (bloqueio) e corpo estranho', async () => {
+    const lines: string[] = [];
+    const log = (l: string) => lines.push(l);
+    await callGemini(
+      'k',
+      'gemini-2.5-flash',
+      'p',
+      {},
+      { fetcher: (async () => OK_BODY.clone()) as typeof fetch, log, kind: 'quiz' },
+    );
+    await callGemini(
+      'k',
+      'gemini-2.5-flash',
+      'p',
+      {},
+      {
+        fetcher: (async () =>
+          new Response(
+            JSON.stringify({ promptFeedback: { blockReason: 'SAFETY' } }),
+          )) as typeof fetch,
+        log,
+      },
+    );
+    await callGemini(
+      'k',
+      'gemini-2.5-flash',
+      'p',
+      {},
+      { fetcher: (async () => new Response('não é json')) as typeof fetch, log },
+    );
+    const [a, b, c] = lines.map((l) => JSON.parse(l));
+    expect(a).toMatchObject({ ok: true, http: 200, kind: 'quiz' });
+    expect(b).toMatchObject({ ok: false, reason: 'empty', blockReason: 'SAFETY' });
+    expect(c).toMatchObject({ ok: false, reason: 'parse' });
+  });
+});
+
+describe('tempo limite do Gemini', () => {
+  it('estourou o tempo → reason "timeout" (de verdade, pelo sinal de abort)', async () => {
+    const hang = (_u: string, init: RequestInit) =>
+      new Promise<Response>((_res, rej) =>
+        init.signal!.addEventListener('abort', () => rej(init.signal!.reason)),
+      );
+    const t0 = Date.now();
+    const r = await callGemini(
+      'k',
+      'gemini-2.5-flash',
+      'p',
+      {},
+      { fetcher: hang as unknown as typeof fetch, timeoutMs: 1200, log: () => {} },
+    );
+    expect(r).toMatchObject({ ok: false, reason: 'timeout' });
+    expect(Date.now() - t0).toBeLessThan(3000);
+  });
+  it('falha de rede → "network" (não confundir com timeout)', async () => {
+    const r = await callGemini(
+      'k',
+      'gemini-2.5-flash',
+      'p',
+      {},
+      {
+        fetcher: (async () => {
+          throw new TypeError('fetch failed');
+        }) as typeof fetch,
+        log: () => {},
+      },
+    );
+    expect(r).toMatchObject({ ok: false, reason: 'network' });
+  });
+  it('o limite padrão é de 50 s', async () => {
+    const { GEMINI_TIMEOUT_MS } = await import('../src/gemini');
+    expect(GEMINI_TIMEOUT_MS).toBe(50_000);
+  });
+});
+
+describe('respostas de erro do Gemini na rota (sempre com CORS)', () => {
+  const post = () =>
+    call('/api/gemini/riassunto', {
+      method: 'POST',
+      body: JSON.stringify(body({ chapter: undefined })),
+    });
+  const usage = async () =>
+    ((await (await call('/api/gemini/usage?tz=Europe/Rome')).json()) as { used: number }).used;
+  const cors = (r: Response) => expect(r.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN);
+  beforeEach(() => vi.spyOn(console, 'log').mockImplementation(() => {}));
+
+  it('429 do Gemini → 429 "gemini-quota" e a vaga é devolvida', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        errReply(429, { code: 429, status: 'RESOURCE_EXHAUSTED', message: 'quota' }),
+      ),
+    );
+    const r = await post();
+    expect(r.status).toBe(429);
+    expect(await r.json()).toMatchObject({ error: 'gemini-quota' });
+    cors(r);
+    expect(await usage()).toBe(0);
+  });
+  it('timeout → 504 "gemini-timeout"', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new DOMException('timed out', 'TimeoutError');
+      }),
+    );
+    const r = await post();
+    expect(r.status).toBe(504);
+    expect(await r.json()).toMatchObject({ error: 'gemini-timeout' });
+    cors(r);
+    expect(await usage()).toBe(0);
+  });
+  it('outro erro (500/503/rede) → 502 com o motivo', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => errReply(503, { code: 503, status: 'UNAVAILABLE', message: 'overloaded' })),
+    );
+    const r = await post();
+    expect(r.status).toBe(502);
+    expect(await r.json()).toMatchObject({ error: 'gemini', reason: 'http', http: 503 });
+    cors(r);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('fetch failed');
+      }),
+    );
+    expect(await (await post()).json()).toMatchObject({ error: 'gemini', reason: 'network' });
+  });
+  it('quiz com resposta fora do formato → 502 "invalid-output"', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => geminiReply({ questions: [q(0)] })),
+    );
+    const r = await call('/api/gemini/quiz', { method: 'POST', body: JSON.stringify(body()) });
+    expect(r.status).toBe(502);
+    expect(await r.json()).toMatchObject({ reason: 'invalid-output' });
+    cors(r);
   });
 });

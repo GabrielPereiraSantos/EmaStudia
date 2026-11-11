@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { generateQuiz, quizContext, savePastedQuiz } from '../db/quizRepo';
 import type { Quiz } from '../db/types';
 import { openChatGpt, PLAN_B_MESSAGE } from '../lib/gemini';
+import { Thinking } from './Thinking';
 import { go } from '../lib/router';
 import { chatGptPrompt, parsePasted } from '../plan/quizzes';
 
@@ -39,7 +40,7 @@ export function PlanB({ quiz, onToast }: { quiz: Quiz; onToast: (m: string) => v
 
   return (
     <div className="planb">
-      <p className="muted">{PLAN_B_MESSAGE[quiz.failReason ?? 'errore']}</p>
+      {busy ? <Thinking /> : <p className="muted">{PLAN_B_MESSAGE[quiz.failReason ?? 'errore']}</p>}
       <div className="planb-btns">
         <button type="button" className="soft" disabled={busy} onClick={() => void retry()}>
           Riprova

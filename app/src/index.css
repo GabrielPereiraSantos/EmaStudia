@@ -2106,3 +2106,85 @@ textarea:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- Gemini sta pensando… ---------- */
+.thinking {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.card.summary .thinking,
+.quiz-card .thinking {
+  color: var(--text);
+}
+.thinking .dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.thinking .dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pensa 1.2s infinite ease-in-out both;
+}
+.thinking .dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.thinking .dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes pensa {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---------- aviso de versão nova ---------- */
+.update-banner {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(var(--safe-top) + 10px);
+  width: min(390px, calc(100% - 24px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 18px;
+  border-radius: 26px;
+  background: var(--text);
+  color: var(--yellow-light);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 8px 22px rgba(74, 54, 18, 0.35);
+}
+.update-banner button {
+  min-height: 44px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 22px;
+  background: var(--accent);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.update-banner button:disabled {
+  opacity: 0.6;
+}
+.update-banner button:focus-visible {
+  outline-color: var(--yellow-light);
+}

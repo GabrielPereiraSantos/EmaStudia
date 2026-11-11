@@ -238,40 +238,182 @@ export function validateSummary(data: unknown): string | null {
 const MODEL_RE = /^[a-z0-9][a-z0-9.-]{1,62}$/;
 export const DEFAULT_MODEL = 'gemini-2.5-flash';
 
+/** Tempo máximo (total) que o Worker espera pelo Gemini. O app espera 60 s pelo Worker. */
+export const GEMINI_TIMEOUT_MS = 50_000;
+
+type Thinking = Record<string, unknown> | null;
+
+/**
+ * Thinking no mínimo (respostas rápidas). Cada família usa um campo diferente:
+ *  - Gemini 3: thinkingLevel "minimal";  Gemini 2.5 Flash/Flash-Lite: thinkingBudget 0;
+ *  - 2.5 Pro não desliga (mínimo 128). Apelidos ("-latest") tentam os dois, depois sem nada.
+ * Se o modelo recusar o campo (400 citando "thinking"), o próximo da lista é tentado.
+ */
+export function thinkingCandidates(model: string): { label: string; config: Thinking }[] {
+  const minimal = { label: 'level:minimal', config: { thinkingLevel: 'minimal' } };
+  const zero = { label: 'budget:0', config: { thinkingBudget: 0 } };
+  const none = { label: 'default', config: null };
+  if (/gemini-2\.5-pro/.test(model))
+    return [{ label: 'budget:128', config: { thinkingBudget: 128 } }, none];
+  if (/gemini-2\.5/.test(model)) return [zero, none];
+  if (/gemini-3/.test(model)) return [minimal, zero, none];
+  return [minimal, zero, none];
+}
+
+/** Lembra, por modelo, qual configuração de thinking funcionou (evita repetir tentativas). */
+const thinkingChoice = new Map<string, number>();
+
+export type GeminiFailure =
+  | { reason: 'timeout' }
+  | { reason: 'network' }
+  | { reason: 'http'; status: number; geminiStatus?: string; geminiCode?: number; message?: string }
+  | { reason: 'empty'; finishReason?: string; blockReason?: string }
+  | { reason: 'parse' };
+
+export type GeminiResult =
+  | { ok: true; data: unknown; model: string; ms: number }
+  | ({ ok: false; model: string; ms: number } & GeminiFailure);
+
+export interface GeminiOptions {
+  fetcher?: typeof fetch;
+  timeoutMs?: number;
+  /** Rótulo para o log (quiz, esercizi, riassunto). Nunca o conteúdo. */
+  kind?: string;
+  log?: (line: string) => void;
+  now?: () => number;
+}
+
+const oneLine = (s: unknown, max = 200) =>
+  typeof s === 'string' ? s.replace(/\s+/g, ' ').trim().slice(0, max) : undefined;
+
+/** Registra status, código/mensagem do erro e duração. Nunca o que foi enviado nem a resposta. */
+export function logGemini(
+  log: (line: string) => void,
+  kind: string | undefined,
+  r: GeminiResult,
+  thinking: string,
+  attempt: number,
+) {
+  const base = { at: 'gemini', kind, model: r.model, thinking, attempt, ms: r.ms };
+  if (r.ok) return log(JSON.stringify({ ...base, ok: true, http: 200 }));
+  const f = r as GeminiResult & GeminiFailure;
+  log(
+    JSON.stringify({
+      ...base,
+      ok: false,
+      reason: f.reason,
+      http: f.reason === 'http' ? f.status : undefined,
+      geminiStatus: f.reason === 'http' ? f.geminiStatus : undefined,
+      geminiCode: f.reason === 'http' ? f.geminiCode : undefined,
+      message: f.reason === 'http' ? oneLine(f.message) : undefined,
+      finishReason: f.reason === 'empty' ? f.finishReason : undefined,
+      blockReason: f.reason === 'empty' ? f.blockReason : undefined,
+    }),
+  );
+}
+
 /** Chama o Gemini pedindo JSON com schema. A chave vai no cabeçalho, nunca na URL. */
 export async function callGemini(
   apiKey: string,
   model: string | undefined,
   prompt: string,
   schema: object,
-  fetcher: typeof fetch = fetch,
-): Promise<unknown | null> {
+  opts: GeminiOptions = {},
+): Promise<GeminiResult> {
+  const fetcher = opts.fetcher ?? fetch;
+  const now = opts.now ?? Date.now;
+  const log = opts.log ?? ((l: string) => console.log(l));
+  const total = opts.timeoutMs ?? GEMINI_TIMEOUT_MS;
   const m = model && MODEL_RE.test(model) ? model : DEFAULT_MODEL;
-  try {
-    const res = await fetcher(
-      `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            responseSchema: schema,
-            temperature: 0.7,
-          },
-        }),
-        signal: AbortSignal.timeout(30_000),
-      },
-    );
-    if (!res.ok) return null;
-    const json = (await res.json()) as {
-      candidates?: { content?: { parts?: { text?: string }[] } }[];
+  const candidates = thinkingCandidates(m);
+  const start = now();
+  let i = Math.min(thinkingChoice.get(m) ?? 0, candidates.length - 1);
+
+  for (let attempt = 1; ; attempt++) {
+    const remaining = total - (now() - start);
+    const t0 = now();
+    const done = (f: { ok: true; data: unknown } | GeminiFailure): GeminiResult => {
+      const ms = now() - t0;
+      const out = (f as { ok?: true }).ok
+        ? ({ ok: true, data: (f as { data: unknown }).data, model: m, ms } as GeminiResult)
+        : ({ ok: false, model: m, ms, ...(f as GeminiFailure) } as GeminiResult);
+      logGemini(log, opts.kind, out, candidates[i].label, attempt);
+      return out;
     };
+    if (remaining < 1000) return done({ reason: 'timeout' });
+
+    let res: Response;
+    try {
+      res = await fetcher(
+        `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              responseSchema: schema,
+              temperature: 0.7,
+              ...(candidates[i].config ? { thinkingConfig: candidates[i].config } : {}),
+            },
+          }),
+          signal: AbortSignal.timeout(remaining),
+        },
+      );
+    } catch (e) {
+      const name = (e as Error)?.name;
+      return done({
+        reason: name === 'TimeoutError' || name === 'AbortError' ? 'timeout' : 'network',
+      });
+    }
+
+    if (!res.ok) {
+      let err: { code?: number; status?: string; message?: string } = {};
+      try {
+        err = ((await res.json()) as { error?: typeof err }).error ?? {};
+      } catch {
+        /* corpo que não é JSON */
+      }
+      const out = done({
+        reason: 'http',
+        status: res.status,
+        geminiStatus: err.status,
+        geminiCode: err.code,
+        message: err.message,
+      });
+      // o modelo recusou o campo de thinking: tenta a próxima configuração
+      if (res.status === 400 && /thinking/i.test(err.message ?? '') && i + 1 < candidates.length) {
+        i++;
+        continue;
+      }
+      return out;
+    }
+
+    let json: {
+      candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
+      promptFeedback?: { blockReason?: string };
+    };
+    try {
+      json = await res.json();
+    } catch {
+      return done({ reason: 'parse' });
+    }
     const text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
-    return JSON.parse(text);
-  } catch {
-    return null;
+    if (!text) {
+      return done({
+        reason: 'empty',
+        finishReason: json.candidates?.[0]?.finishReason,
+        blockReason: json.promptFeedback?.blockReason,
+      });
+    }
+    try {
+      const data = JSON.parse(text);
+      thinkingChoice.set(m, i);
+      return done({ ok: true, data });
+    } catch {
+      return done({ reason: 'parse' });
+    }
   }
 }
 
