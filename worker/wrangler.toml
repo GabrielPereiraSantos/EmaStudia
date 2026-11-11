@@ -10,7 +10,7 @@ crons = ["*/5 * * * *"]
 binding = "DB"
 database_name = "ema-db"
 # Troque pelo id mostrado por: npx wrangler d1 create ema-db
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "1698e35f-e170-4586-9a7e-35372de715e5"
 migrations_dir = "migrations"
 
 [vars]
