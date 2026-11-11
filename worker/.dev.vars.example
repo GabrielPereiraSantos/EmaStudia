@@ -1,0 +1,4 @@
+# Copie para .dev.vars (ignorado pelo Git). Preencha nas fases 4 e 5.
+ACCESS_CODE=
+GEMINI_API_KEY=
+VAPID_PRIVATE_KEY=

@@ -1,0 +1,22 @@
+:root {
+  --bg: #fffbeb;
+  --bg-soft: #fff3c4;
+  --yellow: #ffd866;
+  --yellow-light: #ffe597;
+  --field: #fff6d6;
+  --chip: #fff0bf;
+  --accent: #e8a317;
+  --text: #4a3612;
+  --text-2: #6b5428;
+  --card: #ffffff;
+  --radius-card: 24px;
+  --radius-card-lg: 28px;
+  --wednesday: #f9b4d3;
+  --wednesday-soft: #fde7f1;
+  --easy: #d6f2d9;
+  --medium: #ffd866;
+  --hard: #ffb3ac;
+  --shadow: 0 10px 24px rgba(160, 110, 0, 0.12);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}

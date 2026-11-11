@@ -1,0 +1,9 @@
+name = "ema-worker"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Valores reais entram na Fase 4/5. Segredos: use `wrangler secret put` (nunca aqui).
+GEMINI_MODEL = ""
+GEMINI_DAILY_LIMIT = "20"
+ALLOWED_ORIGIN = ""
