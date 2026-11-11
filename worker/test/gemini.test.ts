@@ -83,6 +83,17 @@ describe('pedido ao Gemini', () => {
     );
     expect(p).toMatch(/sull'intero argomento/);
   });
+  it('só o que ela já estudou: páginas sem capítulo', () => {
+    const p = buildPrompt(
+      parseGeminiRequest(
+        'quiz',
+        body({ chapter: undefined, pages: { from: 1, to: 60 } }),
+        isTimezone,
+      )!,
+    );
+    expect(p).toMatch(/sulle pagine indicate \(solo ciò che lo studente ha già studiato\)/);
+    expect(p).toMatch(/Pagine 1–60/);
+  });
   it('exercícios pedem a solução passo a passo', () => {
     expect(
       buildPrompt(parseGeminiRequest('esercizi', body({ type: 'esatte' }), isTimezone)!),

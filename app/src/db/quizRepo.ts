@@ -41,7 +41,12 @@ export async function generateQuiz(id: number): Promise<boolean> {
   if (!study || !ctx) return false;
   attempted.add(id);
   await db.quizzes.update(id, { failReason: undefined });
-  const r = await geminiQuestions(quiz.kind, { study, chapter: ctx.chapter, notes: ctx.notes });
+  const r = await geminiQuestions(quiz.kind, {
+    study,
+    chapter: ctx.chapter,
+    pages: ctx.pages,
+    notes: ctx.notes,
+  });
   const fresh = await db.quizzes.get(id);
   if (!fresh || fresh.status !== 'in-attesa') return false; // ela já colou ou escreveu enquanto isso
   if (r.ok) {
@@ -72,6 +77,8 @@ export async function ensureQuizzes(today: ISODate = todayISO()) {
             key: need.key,
             chapter: need.chapter?.n,
             chapterTitle: need.chapter?.title,
+            pageFrom: need.pages?.from,
+            pageTo: need.pages?.to ?? (need.chapter ? need.chapter.to : undefined),
             questions: [],
             answers: [],
             score: 0,

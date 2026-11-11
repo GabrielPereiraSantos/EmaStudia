@@ -146,7 +146,11 @@ export function buildPrompt(r: GeminiRequest): string {
     ].join('\n\n');
   }
   const n = QUESTION_COUNT[r.kind];
-  const about = r.chapter ? 'sul capitolo indicato' : "sull'intero argomento";
+  const about = r.chapter
+    ? 'sul capitolo indicato'
+    : r.pages
+      ? 'sulle pagine indicate (solo ciò che lo studente ha già studiato)'
+      : "sull'intero argomento";
   const what =
     r.kind === 'esercizi'
       ? `Crea ${n} esercizi a scelta multipla ${about}, con calcoli o ragionamenti. Per ogni esercizio scrivi la risoluzione passo a passo nel campo "solution".`

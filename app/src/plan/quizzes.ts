@@ -5,24 +5,37 @@ export interface QuizNeed {
   key: string;
   kind: 'quiz' | 'esercizi';
   chapter?: { n: number; title?: string; from: number; to: number };
+  /** Páginas estudadas (sem capítulo): da página inicial até a última feita. */
+  pages?: { from: number; to: number };
 }
 
-/** Fim dos dias de studio: todas as páginas feitas, ou já chegou o primeiro dia de ripasso. */
+/**
+ * Fim dos dias de studio (8.1): terminou as páginas, ou chegou o primeiro dia de ripasso,
+ * ou (sem dias de ripasso) chegou o último dia de studio — o que vier primeiro.
+ */
 export function studioFinished(study: Study, days: PlanDay[], today: string): boolean {
   if (firstUndonePage(study, days) > study.pageEnd) return true;
   const firstReview = days
     .filter((d) => d.kind === 'ripasso')
     .map((d) => d.date)
     .sort()[0];
-  return !!firstReview && today >= firstReview;
+  if (firstReview) return today >= firstReview;
+  const lastStudio = days
+    .filter((d) => d.kind === 'studio')
+    .map((d) => d.date)
+    .sort()
+    .at(-1);
+  return !!lastStudio && today >= lastStudio;
 }
 
 /**
  * Quizzes que devem existir agora (8.1):
  *  - não exatas com capítulos: um quiz por capítulo concluído (a última página já foi feita);
- *  - não exatas sem capítulos: um quiz sobre o argomento inteiro no fim dos dias de studio;
+ *    no fim dos dias de studio, também o capítulo em andamento (só até a última página feita);
+ *  - não exatas sem capítulos: um quiz sobre o argomento no fim dos dias de studio;
  *  - exatas: 4 exercícios no fim dos dias de studio.
- * Os que já existem (pela `key`) não são gerados de novo.
+ * Se faltam páginas no fim, o conteúdo vai só da página inicial até a última feita
+ * (sem nenhuma página feita, não há o que perguntar). Os que já existem (pela `key`) não se repetem.
  */
 export function quizzesDue(
   study: Study,
@@ -32,10 +45,17 @@ export function quizzesDue(
 ): QuizNeed[] {
   const have = new Set(existing.map((q) => q.key));
   const out: QuizNeed[] = [];
+  const next = firstUndonePage(study, days);
+  const lastDone = next - 1;
+  const finished = studioFinished(study, days, today);
+  const studied =
+    lastDone >= study.pageStart
+      ? { from: study.pageStart, to: Math.min(lastDone, study.pageEnd) }
+      : null;
+
   if (study.type === 'esatte') {
-    if (studioFinished(study, days, today)) out.push({ key: 'esercizi', kind: 'esercizi' });
+    if (finished && studied) out.push({ key: 'esercizi', kind: 'esercizi', pages: studied });
   } else if (study.chapters.length) {
-    const next = firstUndonePage(study, days);
     const titles = new Map(study.chapters.map((c) => [c.n, c.title]));
     for (const r of chapterRanges(study.chapters, study.pageStart, study.pageEnd)) {
       if (r.to < next)
@@ -44,9 +64,15 @@ export function quizzesDue(
           kind: 'quiz',
           chapter: { n: r.n, title: titles.get(r.n), from: r.from, to: r.to },
         });
+      else if (finished && r.from <= lastDone)
+        out.push({
+          key: `cap:${r.n}`,
+          kind: 'quiz',
+          chapter: { n: r.n, title: titles.get(r.n), from: r.from, to: lastDone },
+        });
     }
-  } else if (studioFinished(study, days, today)) {
-    out.push({ key: 'studio', kind: 'quiz' });
+  } else if (finished && studied) {
+    out.push({ key: 'studio', kind: 'quiz', pages: studied });
   }
   return out.filter((n) => !have.has(n.key));
 }
@@ -138,6 +164,8 @@ export interface PromptContext {
   topic: string;
   difficulty: 1 | 2 | 3;
   chapter?: { n: number; title?: string; from: number; to: number };
+  /** Sem capítulo: só o que ela já estudou. */
+  pages?: { from: number; to: number };
   notes: string[];
   summary: string;
 }
@@ -149,6 +177,10 @@ function contextLines(c: PromptContext): string[] {
     l.push(
       `Capitolo ${c.chapter.n}${c.chapter.title ? ` «${c.chapter.title}»` : ''}, pagine ${c.chapter.from}–${c.chapter.to}.`,
     );
+  else if (c.pages)
+    l.push(
+      `Pagine ${c.pages.from}–${c.pages.to} del libro (solo ciò che lo studente ha già studiato).`,
+    );
   if (c.notes.length) l.push(`Appunti da memorizzare:\n${c.notes.map((n) => `- ${n}`).join('\n')}`);
   if (c.summary) l.push(`Riassunto:\n${c.summary}`);
   return l;
@@ -157,7 +189,11 @@ function contextLines(c: PromptContext): string[] {
 /** Prompt para o ChatGPT (plano B), pedindo o JSON no formato exato do app. */
 export function chatGptPrompt(kind: 'quiz' | 'esercizi', c: PromptContext): string {
   const n = QUESTION_COUNT[kind];
-  const about = c.chapter ? 'sul capitolo indicato' : "sull'intero argomento";
+  const about = c.chapter
+    ? 'sul capitolo indicato'
+    : c.pages
+      ? 'sulle pagine indicate'
+      : "sull'intero argomento";
   const example =
     kind === 'esercizi'
       ? '{"questions":[{"question":"...","options":["...","...","...","..."],"correctIndex":0,"explanation":"...","solution":"Passo 1: ... Passo 2: ..."}]}'

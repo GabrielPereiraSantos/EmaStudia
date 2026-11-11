@@ -106,6 +106,9 @@ export interface Quiz {
   key: string;
   chapter?: number;
   chapterTitle?: string;
+  /** Páginas cobertas (só o que ela já estudou quando o ripasso chega com páginas faltando). */
+  pageFrom?: number;
+  pageTo?: number;
   questions: Question[];
   answers: number[];
   score: number;

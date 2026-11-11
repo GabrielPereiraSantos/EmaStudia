@@ -6,10 +6,11 @@ export type GeminiError = 'quota' | 'errore' | 'offline';
 interface Ctx {
   study: Study;
   chapter?: { n: number; title?: string; from: number; to: number };
+  pages?: { from: number; to: number };
   notes: string[];
 }
 
-const body = ({ study, chapter, notes }: Ctx) => ({
+const body = ({ study, chapter, pages, notes }: Ctx) => ({
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   subject: study.subject,
   type: study.type,
@@ -18,7 +19,7 @@ const body = ({ study, chapter, notes }: Ctx) => ({
   chapter: chapter
     ? { n: chapter.n, ...(chapter.title ? { title: chapter.title } : {}) }
     : undefined,
-  pages: chapter ? { from: chapter.from, to: chapter.to } : undefined,
+  pages: chapter ? { from: chapter.from, to: chapter.to } : pages,
   notes: notes.slice(0, 50).map((n) => n.slice(0, 280)),
   summary: study.summary.slice(0, 2000),
 });
