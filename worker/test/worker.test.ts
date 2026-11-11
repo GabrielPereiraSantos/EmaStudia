@@ -295,6 +295,19 @@ describe('fluxo completo: agenda → cron → push', () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it('desligar "Includi le note" apaga as notas que já estavam no servidor', async () => {
+    await setup();
+    const count = () =>
+      (env.DB.raw.prepare('SELECT COUNT(*) AS n FROM notes').get() as { n: number }).n;
+    expect(count()).toBe(2);
+    // o app manda a mesma agenda, agora sem notas
+    await call('/api/schedule', { method: 'PUT', body: JSON.stringify(schedule({ notes: {} })) });
+    expect(count()).toBe(0);
+    // e a notificação sai sem nota
+    const fetcher = vi.fn(async () => new Response(null, { status: 201 }));
+    expect((await runCron(env, t, fetcher as unknown as typeof fetch)).sent).toBe(1);
+  });
+
   it('notifica de prova sem assinatura → 404', async () => {
     const r = await call('/api/test-notification', {
       method: 'POST',

@@ -148,12 +148,23 @@ No fim aparece o endereço, algo como `https://ema-worker.SEU-USUARIO.workers.de
 
 1. Envie suas alterações para o GitHub (`git push`).
 2. No painel da Cloudflare: **Workers & Pages → Create → Pages → Connect to Git**. Autorize o GitHub e escolha o repositório **EmaStudia**.
-3. Configuração do build:
+3. Configuração do build (copie exatamente):
    - **Project name**: `ema-studia` (o endereço será `https://ema-studia.pages.dev`)
-   - **Framework preset**: None
-   - **Build command**: `npm run build`
-   - **Build output directory**: `app/dist`
-   - **Root directory**: deixe vazio (a raiz do repositório, porque o projeto usa workspaces)
+   - **Production branch**: `main`
+   - **Framework preset**: `None`
+   - **Build command**:
+
+     ```
+     npm run build
+     ```
+
+   - **Build output directory**:
+
+     ```
+     app/dist
+     ```
+
+   - **Root directory (advanced)**: deixe **vazio**. O projeto usa workspaces: o Pages instala tudo na raiz e o `npm run build` da raiz compila o app (`npm run build -w app`), gerando os arquivos em `app/dist`.
 4. Em **Environment variables**, adicione:
    - `NODE_VERSION` = `22`
    - `VITE_API_URL` = o endereço do Worker do passo 7
