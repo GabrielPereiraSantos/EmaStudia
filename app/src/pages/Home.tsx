@@ -5,10 +5,12 @@ import { SUBJECT_COLORS } from '../lib/colors';
 import { formatLongIt, greeting, todayISO } from '../lib/dates';
 import { examIn, taskText, TYPE_LABEL, TYPE_STYLE } from '../lib/labels';
 import { go, studyPath } from '../lib/router';
+import { useCoins } from '../lib/useCoins';
 import { useLive } from '../lib/useLive';
 
 export function Home() {
   const today = todayISO();
+  const coins = useCoins();
   const data = useLive(async () => {
     const studies = (await db.studies.toArray()).filter((s) => !s.archived);
     const all = await db.planDays.toArray();
@@ -62,12 +64,12 @@ export function Home() {
 
       <div className="stats">
         <div>
-          <strong>0</strong>
-          <span>giorni di fila</span>
+          <strong>{coins?.streak ?? 0}</strong>
+          <span>{coins?.streak === 1 ? 'giorno di fila' : 'giorni di fila'}</span>
         </div>
         <i />
         <div>
-          <strong>0</strong>
+          <strong>{coins?.balance ?? 0}</strong>
           <span>monetine</span>
         </div>
         <i />

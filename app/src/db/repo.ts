@@ -7,9 +7,10 @@ import {
   type DraftDay,
 } from '../plan/core';
 import { assessPace } from '../plan/pace';
+import { balanceOf, computeAwards, redeem, scheduledDates } from '../plan/coins';
 import { rebalanceStudies } from '../plan/rebalance';
-import { db } from './db';
-import type { PlanDay, Session, Study } from './types';
+import { db, DEFAULT_SETTINGS } from './db';
+import type { PlanDay, Reward, Session, Study } from './types';
 
 export type StudyInput = Omit<
   Study,
@@ -180,6 +181,61 @@ export async function addSession(
     durationSec: Math.round(durationSec),
     mode,
     manual: manual || undefined,
+  });
+  await awardCoins();
+}
+
+/**
+ * Concede as moedinhas (seção 7): +10 por dia estudado (30 min somando todos os estudos),
+ * +30 a cada 7 dias seguidos. Idempotente; chamado ao salvar tempo e ao abrir o app.
+ */
+export async function awardCoins(today: ISODate = todayISO()) {
+  await db.transaction(
+    'rw',
+    db.sessions,
+    db.planDays,
+    db.studies,
+    db.coins,
+    db.settings,
+    async () => {
+      const [sessions, days, studies, coins, settings] = await Promise.all([
+        db.sessions.toArray(),
+        db.planDays.toArray(),
+        db.studies.toArray(),
+        db.coins.toArray(),
+        db.settings.get(1),
+      ]);
+      const rules = settings ?? DEFAULT_SETTINGS;
+      const awards = computeAwards(sessions, scheduledDates(days, studies), coins, rules, today);
+      if (awards.length) await db.coins.bulkAdd(awards);
+    },
+  );
+}
+
+export async function saveReward(
+  input: Pick<Reward, 'name' | 'icon' | 'price' | 'repeatable'>,
+  id?: number,
+) {
+  if (id) await db.rewards.update(id, input);
+  else await db.rewards.add({ ...input, active: true });
+}
+
+/** Remove da loja; o registro fica só para o histórico de resgates. */
+export const removeReward = (id: number) => db.rewards.update(id, { active: false, removed: true });
+
+export async function redeemReward(
+  id: number,
+  today: ISODate = todayISO(),
+): Promise<'ok' | 'poor' | 'gone'> {
+  return db.transaction('rw', db.rewards, db.coins, db.redemptions, async () => {
+    const reward = await db.rewards.get(id);
+    if (!reward) return 'gone';
+    const r = redeem(balanceOf(await db.coins.toArray()), reward, today);
+    if (!r.ok) return r.reason;
+    await db.coins.add(r.entry);
+    await db.redemptions.add(r.redemption);
+    await db.rewards.put(r.reward);
+    return 'ok';
   });
 }
 

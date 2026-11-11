@@ -115,7 +115,10 @@ export interface Reward {
   icon: 'regalo' | 'cuore' | 'film' | 'tazza' | 'stella';
   price: number;
   repeatable: boolean;
+  /** false = resgatado (não repetível) ou removido; some da loja. */
   active: boolean;
+  /** Removido por ela; continua existindo só para o histórico de resgates. */
+  removed?: boolean;
 }
 
 export interface Redemption {
