@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Layout 3 Girasole con i colori delle materie</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#7A5200}a:hover{color:#4A3612}
+input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 2100px; height: 924px; box-sizing: border-box; padding: 40px; display: flex; gap: 40px; background: #FFF3C4; font-family: Quicksand, sans-serif; color: #4A3612">
+
+<!-- SCHERMATA 1: HOME -->
+<div style="width: 390px; height: 844px; flex-shrink: 0; border-radius: 44px; overflow: hidden; position: relative; background: #FFFBEB; box-shadow: 0 20px 50px rgba(160,110,0,0.16)">
+<div style="background: #FFD866; border-radius: 0 0 40px 40px; padding: 60px 26px 70px; position: relative; overflow: hidden">
+<div style="position: absolute; right: -40px; top: -30px; width: 170px; height: 170px; border-radius: 50%; background: #FFE597"></div>
+<div style="position: absolute; right: 30px; top: 40px; width: 70px; height: 70px; border-radius: 50%; background: #FFF3C4"></div>
+<p style="margin: 0; font-size: 14px; font-weight: 600; position: relative">Martedì, 10 novembre</p>
+<h1 style="margin: 6px 0 0; font-size: 32px; font-weight: 700; position: relative">Buonasera, Ema</h1>
+<p style="margin: 4px 0 0; font-size: 17px; font-weight: 600; position: relative">Cosa studiamo oggi?</p>
+</div>
+<div style="margin: -46px 20px 0; position: relative; background: #FFFFFF; border-radius: 28px; padding: 16px 18px; display: flex; justify-content: space-around; box-shadow: 0 10px 24px rgba(160,110,0,0.12)">
+<div style="text-align: center"><p style="margin: 0; font-size: 24px; font-weight: 700">5</p><p style="margin: 0; font-size: 12px; font-weight: 600; color: #6B5428">giorni di fila</p></div>
+<div style="width: 1px; background: #F3E2A6"></div>
+<div style="text-align: center"><p style="margin: 0; font-size: 24px; font-weight: 700">120</p><p style="margin: 0; font-size: 12px; font-weight: 600; color: #6B5428">monetine</p></div>
+<div style="width: 1px; background: #F3E2A6"></div>
+<div style="text-align: center"><p style="margin: 0; font-size: 24px; font-weight: 700">3</p><p style="margin: 0; font-size: 12px; font-weight: 600; color: #6B5428">esami</p></div>
+</div>
+<div style="padding: 18px 20px 0; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0 6px; font-size: 20px; font-weight: 700">Oggi</h2>
+<div style="background: #FFB3AC; border-radius: 24px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="padding: 4px 10px; border-radius: 99px; background: #3E6CC4; font-size: 11px; font-weight: 700; color: #FFFFFF">ESATTE</span><span style="font-size: 12px; font-weight: 700; color: #4A3612">esame tra 5 giorni</span></div>
+<p style="margin: 0; font-size: 21px; font-weight: 700; line-height: 1; color: #4A3612">Fisica</p>
+<p style="margin: 0; font-size: 13px; font-weight: 600; color: #4A2A22">Cinematica · pagine 12–30</p>
+<button style="height: 40px; border: none; border-radius: 14px; background: #4A3612; font-family: inherit; font-size: 14px; font-weight: 700; color: #FFE597">Studia ora</button>
+</div>
+<div style="background: #C9D9F7; border-radius: 24px; padding: 12px 16px; display: flex; align-items: center; gap: 12px">
+<div style="flex: 1"><p style="margin: 0; font-size: 18px; font-weight: 700; line-height: 1.1">Storia</p><p style="margin: 2px 0 0; font-size: 13px; font-weight: 600; color: #34405A">Rivoluzione francese · capitolo 2</p></div>
+<span style="padding: 6px 12px; border-radius: 99px; background: #FFFFFF; font-size: 12px; font-weight: 700; color: #2A4F9A">Da fare</span>
+</div>
+<div style="background: #D6F2D9; border-radius: 24px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin-right: 76px">
+<div style="flex: 1"><p style="margin: 0; font-size: 18px; font-weight: 700; line-height: 1.1">Biologia</p><p style="margin: 2px 0 0; font-size: 13px; font-weight: 600; color: #2F4A33">Genetica · cap. 4</p></div>
+<span style="padding: 6px 12px; border-radius: 99px; background: #FFFFFF; font-size: 12px; font-weight: 700; color: #2E7D3A">Fatto</span>
+</div>
+</div>
+<button aria-label="Nuovo studio" style="position: absolute; right: 26px; bottom: 120px; width: 64px; height: 64px; border-radius: 50%; border: none; background: #E8A317; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 22px rgba(200,130,0,0.35)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+<nav style="position: absolute; left: 20px; right: 20px; bottom: 26px; height: 66px; border-radius: 33px; background: #4A3612; display: flex; justify-content: space-around; align-items: center">
+<a href="#" aria-label="Home" style="width: 48px; height: 48px; border-radius: 50%; background: #FFD866; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A3612" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></a>
+<a href="#" aria-label="Calendario" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFE597" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></a>
+<a href="#" aria-label="Quiz" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFE597" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg></a>
+<a href="#" aria-label="Premi" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFE597" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8C10 4 6 4 6 7s4 1 6 1zM12 8c2-4 6-4 6-1s-4 1-6 1z"/></svg></a>
+</nav>
+</div>
+
+<!-- SCHERMATA 2: NUOVO STUDIO -->
+<div style="width: 390px; height: 844px; flex-shrink: 0; border-radius: 44px; overflow: hidden; position: relative; background: #FFFBEB; box-shadow: 0 20px 50px rgba(160,110,0,0.16)">
+<div style="padding: 56px 20px 0; display: flex; flex-direction: column; gap: 10px; font-size: 13px">
+<div style="display: flex; align-items: center; gap: 12px">
+<button aria-label="Indietro" style="width: 44px; height: 44px; border-radius: 50%; border: none; background: #FFD866; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A3612" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+<h1 style="margin: 0; font-size: 23px; font-weight: 700">Nuovo studio</h1>
+</div>
+<div style="background: #FFFFFF; border-radius: 26px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; color: #6B5428">Materia<input value="Fisica" readonly style="height: 42px; border-radius: 21px; border: 2px solid #D93A2E; background: #FFB3AC; padding: 0 14px; font-size: 15px; font-weight: 700; color: #4A3612; width: 100%; box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; color: #6B5428">Argomento<input value="Cinematica" readonly style="height: 42px; border-radius: 21px; border: none; background: #FFF6D6; padding: 0 14px; font-size: 15px; font-weight: 600; color: #4A3612; width: 100%; box-sizing: border-box"></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; color: #6B5428">Colore della materia <span style="font-weight: 600; color: #7A6A44">· automatico, si può cambiare</span></span>
+<div style="display: flex; justify-content: space-between">
+<sc-for list="{{subjects}}" as="s" hint-placeholder-count="11">
+<sc-if value="{{s.sel}}" hint-placeholder-val="{{false}}"><span role="img" aria-label="{{s.name}} selezionata" style="width: 22px; height: 22px; border-radius: 50%; background: {{s.bg}}; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px {{s.ac}}"></span></sc-if>
+<sc-if value="{{s.notSel}}" hint-placeholder-val="{{true}}"><span role="img" aria-label="{{s.name}}" style="width: 22px; height: 22px; border-radius: 50%; background: {{s.bg}}; border: 1.5px solid {{s.ac}}; box-sizing: border-box"></span></sc-if>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap">
+<button style="padding: 8px 13px; border-radius: 999px; border: none; background: #3E6CC4; font-family: inherit; font-weight: 700; color: #FFFFFF; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #3E6CC4">Esatte</button>
+<button style="padding: 8px 13px; border-radius: 999px; border: none; background: #FBD3E6; font-family: inherit; font-weight: 700; color: #9C2F66">Umanistiche</button>
+<button style="padding: 8px 13px; border-radius: 999px; border: none; background: #D6F2D9; font-family: inherit; font-weight: 700; color: #2E6B38">Biologiche</button>
+<button style="padding: 8px 13px; border-radius: 999px; border: none; background: #D5C2EE; font-family: inherit; font-weight: 700; color: #5A2E91">Lingue</button>
+</div>
+</div>
+<div style="background: #FFFFFF; border-radius: 26px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; color: #6B5428">Pag. iniziale<input value="12" readonly style="height: 40px; border-radius: 20px; border: none; background: #FFF6D6; padding: 0 14px; font-size: 15px; font-weight: 600; color: #4A3612; width: 100%; box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; color: #6B5428">Pag. finale<input value="80" readonly style="height: 40px; border-radius: 20px; border: none; background: #FFF6D6; padding: 0 14px; font-size: 15px; font-weight: 600; color: #4A3612; width: 100%; box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; color: #6B5428">Capitoli<input value="da 1 a 4" readonly style="height: 40px; border-radius: 20px; border: none; background: #FFF6D6; padding: 0 14px; font-size: 15px; font-weight: 600; color: #4A3612; width: 100%; box-sizing: border-box"></label>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; color: #6B5428">Inizio<input value="10/11/2026" readonly style="height: 40px; border-radius: 20px; border: none; background: #FFF6D6; padding: 0 14px; font-size: 15px; font-weight: 600; color: #4A3612; width: 100%; box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; color: #6B5428">Esame<input value="15/11/2026" readonly style="height: 40px; border-radius: 20px; border: none; background: #FFF6D6; padding: 0 14px; font-size: 15px; font-weight: 600; color: #4A3612; width: 100%; box-sizing: border-box"></label>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: #FFF0BF; border-radius: 22px; padding: 4px">
+<button style="height: 36px; border: none; border-radius: 18px; background: #FFFFFF; font-family: inherit; font-weight: 700; color: #4A3612">Per pagine</button>
+<button style="height: 36px; border: none; border-radius: 18px; background: transparent; font-family: inherit; font-weight: 700; color: #6B5428">Per capitoli</button>
+</div>
+</div>
+<div style="background: #FFFFFF; border-radius: 26px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-weight: 700; color: #6B5428">Difficoltà</span><span style="display: flex; gap: 6px; font-weight: 700"><span style="padding: 4px 10px; border-radius: 99px; background: #D6F2D9; color: #2E6B38">Facile</span><span style="padding: 4px 10px; border-radius: 99px; background: #FFD866; color: #4A3612; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #E0A800">Media</span><span style="padding: 4px 10px; border-radius: 99px; background: #FFB3AC; color: #8E2219">Difficile</span></span></div>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-weight: 700; color: #6B5428">Priorità</span><span style="display: flex; gap: 6px; font-weight: 700"><span style="padding: 4px 10px; border-radius: 99px; background: #D6F2D9; color: #2E6B38">Bassa</span><span style="padding: 4px 10px; border-radius: 99px; background: #FFD866; color: #4A3612">Media</span><span style="padding: 4px 10px; border-radius: 99px; background: #FFB3AC; color: #8E2219; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #D93A2E">Alta</span></span></div>
+<div style="display: flex; justify-content: space-between">
+<sc-for list="{{week}}" as="d" hint-placeholder-count="7">
+<sc-if value="{{d.on}}" hint-placeholder-val="{{true}}"><span style="width: 38px; height: 38px; border-radius: 50%; background: {{d.bg}}; display: flex; align-items: center; justify-content: center; font-weight: 700">{{d.l}}</span></sc-if>
+<sc-if value="{{d.off}}" hint-placeholder-val="{{false}}"><span style="width: 38px; height: 38px; border-radius: 50%; background: #FFF6D6; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #7A6A3A">{{d.l}}</span></sc-if>
+</sc-for>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-weight: 700; color: #6B5428">Promemoria · Ripasso</span><span style="font-weight: 700">19:00 · 2 giorni</span></div>
+</div>
+</div>
+<div style="position: absolute; left: 20px; right: 20px; bottom: 30px">
+<button style="width: 100%; height: 58px; border: none; border-radius: 29px; background: #E8A317; font-family: Quicksand, sans-serif; font-size: 17px; font-weight: 700; color: #FFFFFF; box-shadow: 0 10px 22px rgba(200,130,0,0.3)">Crea il piano di studio</button>
+</div>
+</div>
+
+<!-- SCHERMATA 3: STUDIO -->
+<div style="width: 390px; height: 844px; flex-shrink: 0; border-radius: 44px; overflow: hidden; background: #FFFBEB; box-shadow: 0 20px 50px rgba(160,110,0,0.16)">
+<div style="padding: 56px 20px 0; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<button aria-label="Indietro" style="width: 44px; height: 44px; border-radius: 50%; border: none; background: #FFD866; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A3612" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+<div style="text-align: center"><h1 style="margin: 0; font-size: 21px; font-weight: 700">Chimica</h1><p style="margin: 0; font-size: 13px; font-weight: 600; color: #6B5428">Stechiometria</p></div>
+<span style="padding: 8px 12px; border-radius: 99px; background: #FFD866; font-size: 13px; font-weight: 700">12 giorni</span>
+</div>
+<div style="display: flex; justify-content: center; padding: 6px 0">
+<div style="position: relative; width: 210px; height: 210px">
+<svg width="210" height="210" viewBox="0 0 210 210" aria-hidden="true"><circle cx="105" cy="105" r="92" fill="#FFFFFF" stroke="#FFF0BF" stroke-width="14"/><circle cx="105" cy="105" r="92" fill="none" stroke="#E8A317" stroke-width="14" stroke-linecap="round" stroke-dasharray="560 578" transform="rotate(-90 105 105)"/></svg>
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-size: 12px; font-weight: 700; color: #6B5428">pomodoro</span><span style="font-size: 44px; font-weight: 700">24:10</span><span style="font-size: 12px; font-weight: 700; color: #6B5428">su 25:00</span></div>
+</div>
+</div>
+<div style="display: flex; justify-content: center; gap: 14px">
+<button style="height: 48px; padding: 0 22px; border-radius: 24px; border: none; background: #E8A317; font-family: inherit; font-size: 15px; font-weight: 700; color: #FFFFFF; display: flex; align-items: center; gap: 8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Inizia</button>
+<button style="height: 48px; padding: 0 18px; border-radius: 24px; border: none; background: #FFF0BF; font-family: inherit; font-size: 15px; font-weight: 700; color: #4A3612">Libero</button>
+</div>
+<div style="background: #FFE680; border-radius: 26px; padding: 14px 16px">
+<p style="margin: 0 0 4px; font-size: 14px; font-weight: 700">Riassunto</p>
+<p style="margin: 0; font-size: 13px; line-height: 1.45; font-weight: 500; color: #4A3612">Mole, massa molare, reagente limitante, eccesso e resa.</p>
+</div>
+<div style="background: #FFFFFF; border-radius: 26px; padding: 14px 16px">
+<div style="display: flex; justify-content: space-between">
+<sc-for list="{{faces}}" as="f" hint-placeholder-count="7">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 3px; border-radius: 16px; background: {{f.bg}}; font-size: 11px; font-weight: 700; color: #6B5428">
+<sc-if value="{{f.happy}}" hint-placeholder-val="{{true}}"><svg width="34" height="34" viewBox="0 0 30 30" role="img" aria-label="Ha studiato"><circle cx="15" cy="15" r="14" fill="#FFD866"/><circle cx="11" cy="12.5" r="1.6" fill="#4A3612"/><circle cx="19" cy="12.5" r="1.6" fill="#4A3612"/><path d="M10 17.5c2.5 3 7.5 3 10 0" stroke="#4A3612" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></sc-if>
+<sc-if value="{{f.sad}}" hint-placeholder-val="{{false}}"><svg width="34" height="34" viewBox="0 0 30 30" role="img" aria-label="Non ha studiato"><circle cx="15" cy="15" r="14" fill="#E7E2D6"/><circle cx="11" cy="12.5" r="1.6" fill="#5A5345"/><circle cx="19" cy="12.5" r="1.6" fill="#5A5345"/><path d="M10.5 20.5c2.5-2.5 6.5-2.5 9 0" stroke="#5A5345" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></sc-if>
+<sc-if value="{{f.future}}" hint-placeholder-val="{{false}}"><svg width="34" height="34" viewBox="0 0 30 30" role="img" aria-label="Non ancora"><circle cx="15" cy="15" r="13" fill="#FFF6D6" stroke="#F0D27A" stroke-width="1.5" stroke-dasharray="3 3"/></svg></sc-if>
+{{f.l}}</div>
+</sc-for>
+</div></div>
+<div style="background: #FFE597; border-radius: 26px; padding: 14px 16px">
+<div style="display: flex; justify-content: space-between; align-items: center"><p style="margin: 0; font-size: 14px; font-weight: 700">Da memorizzare</p><button aria-label="Nuova nota" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A3612" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+<p style="margin: 6px 0 0; font-size: 13px; font-weight: 600">1 mole = 6,02 × 10²³ particelle</p>
+</div>
+</div>
+</div>
+
+<!-- SCHERMATA 4: QUIZ -->
+<div style="width: 390px; height: 844px; flex-shrink: 0; border-radius: 44px; overflow: hidden; position: relative; background: #D6F2D9; box-shadow: 0 20px 50px rgba(160,110,0,0.16)">
+<div style="padding: 56px 22px 0">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<button aria-label="Chiudi quiz" style="width: 44px; height: 44px; border-radius: 50%; border: none; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A3612" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+<div style="text-align: center"><p style="margin: 0; font-size: 15px; font-weight: 700">Biologia</p><p style="margin: 0; font-size: 12px; font-weight: 600; color: #2F4A33">Capitolo 4 · 2 di 5</p></div>
+<span style="padding: 8px 12px; border-radius: 99px; background: #FFF3C4; font-size: 13px; font-weight: 700">+5</span>
+</div>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; top: 130px; background: #FFFBEB; border-radius: 40px 40px 0 0; padding: 30px 22px 0; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 22px; line-height: 1.35; font-weight: 700">Un allele recessivo si manifesta solo quando…</h2>
+<button style="text-align: left; padding: 16px 18px; border-radius: 26px; border: none; background: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; color: #4A3612">Ne esiste una sola copia</button>
+<button style="text-align: left; padding: 16px 18px; border-radius: 26px; border: none; background: #2E7D3A; font-family: inherit; font-size: 15px; font-weight: 700; color: #FFFFFF">È presente in doppia dose (omozigote)</button>
+<button style="text-align: left; padding: 16px 18px; border-radius: 26px; border: none; background: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; color: #4A3612">Si trova sempre sul cromosoma Y</button>
+<button style="text-align: left; padding: 16px 18px; border-radius: 26px; border: none; background: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; color: #4A3612">È più forte di quello dominante</button>
+<div style="position: absolute; left: 22px; right: 22px; bottom: 30px; display: flex; flex-direction: column; gap: 8px">
+<button style="height: 58px; border: none; border-radius: 29px; background: #4A3612; font-family: Quicksand, sans-serif; font-size: 17px; font-weight: 700; color: #FFE597">Conferma</button>
+<p style="margin: 0; text-align: center; font-size: 11px; font-weight: 600; color: #6B5428">Domande create da Gemini</p>
+</div>
+</div>
+</div>
+
+<!-- COLORI DELLE MATERIE -->
+<div style="width: 300px; height: 844px; flex-shrink: 0; border-radius: 32px; background: #FFFFFF; box-sizing: border-box; padding: 28px 24px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 20px 50px rgba(160,110,0,0.10)">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Colori delle materie</h2>
+<p style="margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #6B5428">Lo stesso colore in tutte le schermate</p>
+<sc-for list="{{subjects}}" as="s" hint-placeholder-count="11">
+<div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 18px; background: {{s.bg}}">
+<span style="width: 26px; height: 26px; border-radius: 50%; background: {{s.ac}}; flex-shrink: 0"></span>
+<span style="flex: 1; font-size: 15px; font-weight: 700; color: #4A3612">{{s.name}}</span>
+<span style="font-size: 11px; font-weight: 700; color: #4A3612">{{s.label}}</span>
+</div>
+</sc-for>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2100,"height":924}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var w = ['L','M','M','G','V','S','D'];
+    var on = [true,true,true,true,true,false,false];
+    var st = ['h','h','s','h','h','f','f'];
+    var subj = [
+      ['Fisica','#FFB3AC','#D93A2E','rosso'],
+      ['Storia','#C9D9F7','#3E6CC4','blu'],
+      ['Chimica','#FFE680','#E0A800','giallo'],
+      ['Biologia','#D6F2D9','#3C9A4A','verde'],
+      ['Matematica','#FFDDB8','#EE8A1E','arancione'],
+      ['Filosofia','#F6CBB4','#C4582A','terracotta'],
+      ['Arte','#ECE2FB','#A98BE0','lilla'],
+      ['Psicologia','#FBD3E6','#E06BA4','rosa'],
+      ['Italiano','#CDEFEA','#2FA897','verde acqua'],
+      ['Latino','#D5C2EE','#6A37A8','viola'],
+      ['Inglese','#D4F0FB','#4BB3DB','azzurro']
+    ];
+    return {
+      week: w.map(function(l, i){ return { l: l, on: on[i], off: !on[i], bg: i === 2 ? '#F9B4D3' : '#FFD866' }; }),
+      faces: w.map(function(l, i){ return { l: l, happy: st[i]==='h', sad: st[i]==='s', future: st[i]==='f', bg: i === 2 ? '#F9B4D3' : 'transparent' }; }),
+      subjects: subj.map(function(s, i){ return { name: s[0], bg: s[1], ac: s[2], label: s[3], sel: i === 0, notSel: i !== 0 }; })
+    };
+  }
+}
+</script>
+</body>
+</html>
