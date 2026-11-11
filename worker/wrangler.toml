@@ -19,5 +19,5 @@ ALLOWED_ORIGIN = "https://ema-studia.pages.dev"
 VAPID_PUBLIC_KEY = "BPPjr5HTCl4KcOp--KcMpPziros2m2PTtpdK-eFiOsuRs857Pf_yvW6muWx4Ce7d7cHuqq1_kXEfvt7A34RRAhE"
 VAPID_SUBJECT = "mailto:bielpereirasantos2006@gmail.com"
 # Modelo Flash do plano gratuito (confira no Google AI Studio). Se a cota for pouca, use o Flash-Lite.
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-flash-latest"
 GEMINI_DAILY_LIMIT = "20"
