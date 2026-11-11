@@ -1,3 +1,5 @@
+import { replace } from '../lib/router';
+
 type Tab = 'home' | 'calendario' | 'quiz' | 'premi';
 
 const ICONS: Record<Tab, React.ReactNode> = {
@@ -49,6 +51,12 @@ export function BottomNav({ active }: { active: Tab }) {
           aria-label={LABELS[t]}
           aria-current={t === active ? 'page' : undefined}
           className={t === active ? 'on' : ''}
+          onClick={(e) => {
+            // trocar de aba SUBSTITUI a entrada do histórico (não empilha); Ctrl/Cmd+clique abre em outra aba
+            if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            e.preventDefault();
+            replace(HREF[t].slice(1));
+          }}
         >
           <svg
             width="22"

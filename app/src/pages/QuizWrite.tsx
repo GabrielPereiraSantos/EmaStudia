@@ -3,7 +3,7 @@ import { BackButton } from '../components/BackButton';
 import { db } from '../db/db';
 import { saveManualQuiz } from '../db/quizRepo';
 import type { Question } from '../db/types';
-import { go } from '../lib/router';
+import { replace } from '../lib/router';
 import { useLive } from '../lib/useLive';
 import { QUESTION_COUNT, validateQuestions } from '../plan/quizzes';
 
@@ -37,13 +37,13 @@ export function QuizWrite({ id }: { id: number }) {
       return;
     }
     await saveManualQuiz(id, qs);
-    go(`/quiz/${id}`);
+    replace(`/quiz/${id}`); // o formulário não reabre ao voltar
   };
 
   return (
     <div className="page form">
       <div className="page-head">
-        <BackButton onClick={() => go('/quiz')} />
+        <BackButton />
         <h1>Scrivi tu</h1>
       </div>
       <p className="muted pad">

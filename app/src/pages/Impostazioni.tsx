@@ -17,7 +17,7 @@ import {
 } from '../lib/backup';
 import { geminiUsage } from '../lib/gemini';
 import { ENABLE_MESSAGES, enableNotifications, hasPushSubscription } from '../lib/push';
-import { go } from '../lib/router';
+import { goUp } from '../lib/router';
 import { syncSchedule } from '../lib/sync';
 import { useLive } from '../lib/useLive';
 
@@ -178,7 +178,7 @@ export function Impostazioni() {
       await awardCoins();
       await syncSchedule(true);
       flash('Backup ripristinato.');
-      go('/');
+      goUp(['impostazioni']);
     } catch {
       setPending(null);
       setRestoreError('Non sono riuscita a ripristinare il backup. I tuoi dati non sono cambiati.');
@@ -191,7 +191,7 @@ export function Impostazioni() {
   return (
     <div className="page settings">
       <div className="page-head">
-        <BackButton onClick={() => go('/')} />
+        <BackButton />
         <h1>Impostazioni</h1>
       </div>
 

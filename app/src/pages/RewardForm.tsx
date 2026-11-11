@@ -5,7 +5,7 @@ import { REWARD_ICONS, RewardIcon } from '../components/RewardIcon';
 import { db, DEFAULT_SETTINGS } from '../db/db';
 import { removeReward, saveReward } from '../db/repo';
 import type { Reward } from '../db/types';
-import { go } from '../lib/router';
+import { goUp } from '../lib/router';
 import { studyDaysFor } from '../plan/coins';
 
 const SHORTCUTS = [50, 100, 200, 300];
@@ -47,7 +47,7 @@ export function RewardForm({ id }: { id?: number }) {
     setErrors(errs);
     if (errs.length) return;
     await saveReward({ name: name.trim(), icon, price, repeatable }, id);
-    go('/premi');
+    goUp(['premi', 'nuovo']); // volta a Premi sem reabrir o formulário
   };
 
   if (!loaded) return <div className="page" />;
@@ -62,7 +62,7 @@ export function RewardForm({ id }: { id?: number }) {
       noValidate
     >
       <div className="page-head">
-        <BackButton onClick={() => go('/premi')} />
+        <BackButton />
         <h1>{id ? 'Modifica premio' : 'Nuovo premio'}</h1>
       </div>
 
@@ -193,7 +193,7 @@ export function RewardForm({ id }: { id?: number }) {
           confirmLabel="Sì, elimina"
           onConfirm={async () => {
             await removeReward(id!);
-            go('/premi');
+            goUp(['premi', 'nuovo']); // volta a Premi sem reabrir o formulário
           }}
           onClose={() => setAskRemove(false)}
         />

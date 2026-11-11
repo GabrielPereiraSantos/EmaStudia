@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { db } from '../db/db';
 import { finishQuiz } from '../db/quizRepo';
 import { readableFill, SUBJECT_COLORS } from '../lib/colors';
-import { go, studyPath } from '../lib/router';
+import { goUp, replace, studyPath } from '../lib/router';
 import { useLive } from '../lib/useLive';
 import { quizLabel } from './QuizList';
 
@@ -59,7 +59,7 @@ export function QuizPlay({ id }: { id: number }) {
       <div className="page">
         <p className="empty">Quiz non disponibile.</p>
         <div className="center-row">
-          <button type="button" className="soft solo" onClick={() => go('/quiz')}>
+          <button type="button" className="soft solo" onClick={() => goUp(['quiz', String(id)])}>
             Torna ai quiz
           </button>
         </div>
@@ -76,7 +76,7 @@ export function QuizPlay({ id }: { id: number }) {
         type="button"
         className="round-btn white"
         aria-label="Chiudi"
-        onClick={() => go('/quiz')}
+        onClick={() => goUp(['quiz', String(id)])}
       >
         {CLOSE}
       </button>
@@ -178,7 +178,11 @@ export function QuizPlay({ id }: { id: number }) {
             })}
           </ol>
           <div className="quiz-actions">
-            <button type="button" className="dark-big" onClick={() => go(studyPath(study.id!))}>
+            <button
+              type="button"
+              className="dark-big"
+              onClick={() => replace(studyPath(study.id!))}
+            >
               Torna allo studio
             </button>
             <p className="footer-note">{footer}</p>

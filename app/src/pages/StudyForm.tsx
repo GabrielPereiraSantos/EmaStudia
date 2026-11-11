@@ -6,7 +6,7 @@ import type { Level, SplitMode, StudyType } from '../db/types';
 import { COLOR_KEYS, colorForName, pickColor, SUBJECT_COLORS, type ColorKey } from '../lib/colors';
 import { todayISO } from '../lib/dates';
 import { TYPE_LABEL, TYPE_STYLE } from '../lib/labels';
-import { go, studyPath } from '../lib/router';
+import { goUp, replace, studyPath } from '../lib/router';
 import { validateStudy } from '../lib/validateStudy';
 import { DEFAULT_REVIEW_DAYS } from '../plan/core';
 
@@ -173,7 +173,9 @@ export function StudyForm({ id }: { id?: number }) {
     setSaving(true);
     try {
       const sid = id ? (await updateStudy(id, input), id) : await createStudy(input);
-      go(studyPath(sid));
+      // depois de salvar, o formulário não reabre ao voltar
+      if (id) goUp(['studio', String(id), 'modifica']);
+      else replace(studyPath(sid));
     } finally {
       setSaving(false);
     }

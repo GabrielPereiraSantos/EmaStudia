@@ -29,7 +29,7 @@ import {
 import { SUBJECT_COLORS } from '../lib/colors';
 import { daysBetween, todayISO } from '../lib/dates';
 import { taskText } from '../lib/labels';
-import { go, studyPath } from '../lib/router';
+import { go, goUp, studyPath } from '../lib/router';
 import { loadTimer } from '../lib/timer';
 import { useLive } from '../lib/useLive';
 import { draftPages, pagesDoneTotal } from '../plan/core';
@@ -65,7 +65,7 @@ export function StudyPage({ id }: { id: number }) {
     return (
       <div className="page">
         <div className="page-head">
-          <BackButton onClick={() => go('/')} />
+          <BackButton />
           <h1>Studio</h1>
         </div>
         <p className="empty">Studio non trovato.</p>
@@ -141,7 +141,7 @@ export function StudyPage({ id }: { id: number }) {
   return (
     <div className="page study">
       <div className="page-head between">
-        <BackButton onClick={() => go('/')} />
+        <BackButton />
         <div className="center">
           <h1>
             {study.emoji ? study.emoji + ' ' : ''}
@@ -322,7 +322,7 @@ export function StudyPage({ id }: { id: number }) {
           className="soft"
           onClick={async () => {
             await setArchived(id, !study.archived);
-            go('/');
+            goUp(['studio', String(id)]);
           }}
         >
           {study.archived ? 'Ripristina' : 'Archivia'}
@@ -333,7 +333,7 @@ export function StudyPage({ id }: { id: number }) {
           onClick={async () => {
             if (confirm(`Eliminare lo studio di ${study.subject}? Non si può annullare.`)) {
               await deleteStudy(id);
-              go('/');
+              goUp(['studio', String(id)]);
             }
           }}
         >

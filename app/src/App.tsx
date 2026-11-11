@@ -8,7 +8,7 @@ import { Impostazioni } from './pages/Impostazioni';
 import { BottomNav } from './components/BottomNav';
 import { ensureSettings } from './db/db';
 import { awardCoins, dailyReplan } from './db/repo';
-import { useRoute } from './lib/router';
+import { go, useRoute } from './lib/router';
 import { Calendario } from './pages/Calendario';
 import { Home } from './pages/Home';
 import { Premi } from './pages/Premi';
@@ -36,7 +36,7 @@ export function App() {
         typeof url === 'string' &&
         url.startsWith('/#/')
       ) {
-        location.hash = url.slice(1);
+        go(url.slice(1).replace(/^#/, ''));
       }
     };
     navigator.serviceWorker?.addEventListener('message', onMsg);

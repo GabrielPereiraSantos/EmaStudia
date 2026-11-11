@@ -1,11 +1,10 @@
-export function BackButton({ onClick }: { onClick?: () => void }) {
+import { goUp, useRoute } from '../lib/router';
+
+/** "<": leva sempre à tela-mãe lógica (nunca ao histórico às cegas). Nas abas não aparece. */
+export function BackButton() {
+  const route = useRoute();
   return (
-    <button
-      type="button"
-      className="round-btn"
-      aria-label="Indietro"
-      onClick={onClick ?? (() => history.back())}
-    >
+    <button type="button" className="round-btn" aria-label="Indietro" onClick={() => goUp(route)}>
       <svg
         width="20"
         height="20"
