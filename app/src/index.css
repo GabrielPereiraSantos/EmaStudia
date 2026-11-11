@@ -711,6 +711,7 @@ input {
   font-size: 44px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
 .timer-btns {
   display: flex;

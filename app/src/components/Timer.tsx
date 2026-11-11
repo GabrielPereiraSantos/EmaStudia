@@ -138,7 +138,7 @@ export function Timer({ studyId, workMin, breakMin, otherStudy, onSaved }: Props
     <section className="timer" aria-label="Cronometro">
       <div className="ring">
         <svg width="210" height="210" viewBox="0 0 210 210" aria-hidden="true">
-          <circle cx="105" cy="105" r={R} fill="currentColor" stroke="#FFF0BF" strokeWidth="14" />
+          <circle cx="105" cy="105" r={R} fill="#FFFFFF" stroke="#FFF0BF" strokeWidth="14" />
           <circle
             cx="105"
             cy="105"
