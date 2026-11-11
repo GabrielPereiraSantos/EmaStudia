@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { ensureSettings } from './db/db';
+import { dailyReplan } from './db/repo';
 import { useRoute } from './lib/router';
 import { Home } from './pages/Home';
 import { Placeholder } from './pages/Placeholder';
@@ -10,7 +11,12 @@ import { StudyPage } from './pages/StudyPage';
 export function App() {
   const route = useRoute();
   useEffect(() => {
-    void ensureSettings();
+    const run = () => void ensureSettings().then(() => dailyReplan());
+    run();
+    // se o app ficar aberto de um dia para o outro
+    const onVisible = () => document.visibilityState === 'visible' && run();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
   const [a, b, c] = route;

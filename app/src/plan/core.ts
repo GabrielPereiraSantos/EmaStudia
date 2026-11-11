@@ -181,9 +181,17 @@ export function todayRemaining(days: PlanDay[], today: ISODate): number {
   return Math.max(0, draftPages(t) - t.pagesDone);
 }
 
-/** Primeira página que o plano futuro (a partir de amanhã) deve cobrir. */
-export function nextFuturePage(study: PlanStudy, days: PlanDay[], today: ISODate): number {
-  return study.pageStart + pagesDoneTotal(days) + todayRemaining(days, today);
+/** Primeira página ainda não feita: página inicial + páginas feitas. */
+export const firstUndonePage = (study: Pick<PlanStudy, 'pageStart'>, days: PlanDay[]) =>
+  study.pageStart + pagesDoneTotal(days);
+
+/** Ela já começou hoje neste estudo? (sessão do cronômetro/tempo manual ou progresso registrado) */
+export function hasStartedToday(
+  days: PlanDay[],
+  today: ISODate,
+  hasSessionToday: boolean,
+): boolean {
+  return hasSessionToday || days.some((d) => d.date === today && (d.pagesDone > 0 || d.done));
 }
 
 export function baseFromDrafts(drafts: DraftDay[], today: ISODate): BaseEntry[] {
@@ -211,12 +219,21 @@ export function initialPlan(study: PlanStudy, today: ISODate) {
 }
 
 /**
- * 6.5 — refaz o plano a partir de amanhã com as páginas que faltam.
- * Dias passados e a tarefa de hoje não mudam.
+ * 6.5 — replanejamento. As faixas de páginas são sempre consecutivas, sem sobreposição nem
+ * buracos, e terminam na página final; o que falta começa na primeira página não feita
+ * (página inicial + páginas feitas).
+ *  - Dia ainda não começado: o plano parte de HOJE (a tarefa de hoje também é refeita).
+ *  - Dia já começado: a tarefa de hoje fica congelada e o plano parte de amanhã.
+ * Dias passados nunca mudam. O chamador substitui as linhas de hoje (só se não começou) e futuras.
  */
-export function replanFuture(study: PlanStudy, days: PlanDay[], today: ISODate) {
-  const fromDate = maxISO(study.startDate, addDaysISO(today, 1));
-  const drafts = buildPlan(study, fromDate, nextFuturePage(study, days, today));
+export function replanFuture(
+  study: PlanStudy,
+  days: PlanDay[],
+  today: ISODate,
+  startedToday: boolean,
+) {
+  const fromDate = maxISO(study.startDate, startedToday ? addDaysISO(today, 1) : today);
+  const drafts = buildPlan(study, fromDate, firstUndonePage(study, days));
   return { drafts, basePlan: baseFromDrafts(drafts, today) };
 }
 

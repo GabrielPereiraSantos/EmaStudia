@@ -4,11 +4,15 @@ import { weekdayOf } from '../lib/dates';
 import { balanceLoad } from './balance';
 import {
   assignUnits,
+  baseFromDrafts,
   buildPlan,
   buildUnits,
   candidateDates,
   chapterRanges,
   distributePages,
+  draftPages,
+  firstUndonePage,
+  hasStartedToday,
   initialPlan,
   replanFuture,
   type PlanStudy,
@@ -248,17 +252,6 @@ describe('6.5 atraso e redistribuição', () => {
     expect(assessPace(study, days, today).late).toBe(false);
   });
 
-  it('redistribuição: passado e hoje intactos, o resto vai do amanhã até a prova', () => {
-    const days = toDays(1, buildPlan(study, MON, 1));
-    days.slice(0, 3).forEach((d) => (d.pagesDone = 5));
-    const { drafts } = replanFuture(study, days, today);
-    expect(drafts.every((d) => d.date > today)).toBe(true);
-    // hoje continua 31–40 (não muda); o futuro começa depois do que hoje cobre em sequência
-    expect(drafts[0].pageFrom).toBe(1 + 15 + 10);
-    expect(drafts.at(-1)!.pageTo).toBe(100);
-    expect(drafts).toHaveLength(6);
-  });
-
   it('alerta de carga quando páginas/dia passa de 25% do original', () => {
     const days = toDays(1, buildPlan(study, MON, 1));
     days[0].pagesDone = 10;
@@ -295,5 +288,141 @@ describe('rótulos depois do equilíbrio', () => {
       { date: '2026-11-17', pages: 10 },
     ]);
     expect(same.every((d) => !d.partial)).toBe(true);
+  });
+});
+
+/** Faixas consecutivas, sem sobreposição nem buracos, terminando na página final. */
+function expectTiling(
+  drafts: { pageFrom?: number; pageTo?: number; kind: string }[],
+  from: number,
+  end: number,
+) {
+  const studio = drafts.filter((d) => d.kind === 'studio');
+  expect(studio[0].pageFrom).toBe(from);
+  for (let i = 1; i < studio.length; i++)
+    expect(studio[i].pageFrom).toBe(studio[i - 1].pageTo! + 1);
+  expect(studio.at(-1)!.pageTo).toBe(end);
+}
+
+describe('6.5 replanejamento: páginas consecutivas, nenhuma sem dono', () => {
+  // 100 pág, segunda a domingo, 16/11–25/11 (10 dias × 10 pág), prova dia 26.
+  const study: PlanStudy = { ...base, examDate: '2026-11-26' };
+  const today = '2026-11-19'; // quinta; já passaram 16, 17 e 18
+  const pastDone = (days: PlanDay[], each: number) =>
+    days.filter((d) => d.date < today).forEach((d) => (d.pagesDone = each));
+
+  /** Dia de hoje no estado de depois da primeira abertura (refeito do zero). */
+  const afterOpening = () => {
+    const days = toDays(1, buildPlan(study, MON, 1));
+    pastDone(days, 5); // fez 15 de 30: atrasada
+    const p = replanFuture(study, days, today, false);
+    const todayRow = toDays(
+      1,
+      p.drafts.filter((d) => d.date === today),
+    );
+    return {
+      past: days.filter((d) => d.date < today),
+      todayRow,
+      future: p.drafts.filter((d) => d.date > today),
+      all: p.drafts,
+    };
+  };
+
+  it('(a) atrasada, dia não começado: hoje começa na primeira página não feita e cobre tudo até o fim', () => {
+    const days = toDays(1, buildPlan(study, MON, 1));
+    pastDone(days, 5);
+    expect(hasStartedToday(days, today, false)).toBe(false);
+    expect(firstUndonePage(study, days)).toBe(16);
+    const { drafts } = replanFuture(study, days, today, false);
+    expect(drafts[0]).toMatchObject({ date: today, pageFrom: 16 });
+    expectTiling(drafts, 16, 100);
+    // o atraso se distribui por hoje e pelos dias futuros: 85 pág em 7 dias
+    expect(drafts.map((d) => draftPages(d))).toEqual([13, 12, 12, 12, 12, 12, 12]);
+  });
+
+  it('(b) atrasada, dia já começado: hoje fica igual e amanhã começa logo depois da última página feita', () => {
+    const { past, todayRow, future } = afterOpening();
+    expect(todayRow[0]).toMatchObject({ pageFrom: 16, pageTo: 28 });
+    todayRow[0].pagesDone = 4; // começou: fez 16–19
+    const days = [...past, ...todayRow, ...toDays(1, future)];
+    expect(hasStartedToday(days, today, false)).toBe(true);
+    const p = replanFuture(study, days, today, true);
+    expect(p.drafts.every((d) => d.date > today)).toBe(true); // hoje não é tocado
+    expect(p.drafts[0]).toMatchObject({ date: '2026-11-20', pageFrom: 1 + 15 + 4 });
+    expectTiling(p.drafts, 20, 100);
+  });
+
+  it('(b2) só tem sessão do cronômetro, sem páginas: também conta como começado', () => {
+    const { past, todayRow } = afterOpening();
+    expect(hasStartedToday([...past, ...todayRow], today, true)).toBe(true);
+    expect(hasStartedToday([...past, ...todayRow], today, false)).toBe(false);
+  });
+
+  it('(c) progresso parcial e total: amanhã parte da última página feita', () => {
+    const { past, todayRow } = afterOpening();
+    todayRow[0].pagesDone = 10;
+    const partial = replanFuture(study, [...past, ...todayRow], today, true);
+    expect(partial.drafts[0].pageFrom).toBe(26); // 1 + 15 feitas + 10 de hoje
+    expectTiling(partial.drafts, 26, 100);
+    // terminou tudo de hoje (16–28): amanhã na página seguinte ao fim da faixa de hoje
+    todayRow[0].pagesDone = 13;
+    todayRow[0].done = true;
+    const full = replanFuture(study, [...past, ...todayRow], today, true);
+    expect(full.drafts[0].pageFrom).toBe(todayRow[0].pageTo! + 1);
+    expect(full.drafts[0].pageFrom).toBe(29);
+    expectTiling(full.drafts, 29, 100);
+  });
+
+  it('hoje 35–51 concluído: amanhã começa na 52', () => {
+    const days = toDays(1, [
+      { date: '2026-11-16', kind: 'studio', pageFrom: 1, pageTo: 17 },
+      { date: '2026-11-17', kind: 'studio', pageFrom: 18, pageTo: 34 },
+      { date: today, kind: 'studio', pageFrom: 35, pageTo: 51 },
+    ]);
+    days[0].pagesDone = 17;
+    days[1].pagesDone = 17;
+    days[2].pagesDone = 17;
+    days[2].done = true;
+    const p = replanFuture(study, days, today, true);
+    expect(p.drafts[0].pageFrom).toBe(52);
+    expectTiling(p.drafts, 52, 100);
+  });
+
+  it('(d) hoje sem tarefa: o plano começa na primeira página não feita, no próximo dia disponível', () => {
+    const s: PlanStudy = { ...base, weekdays: [1, 2, 3, 4, 5], examDate: '2026-11-30' };
+    const sat = '2026-11-21';
+    const days = toDays(1, buildPlan(s, MON, 1)).filter((d) => d.date < sat);
+    days.forEach((d) => (d.pagesDone = 4)); // 5 dias × 4 = 20 feitas
+    expect(days.some((d) => d.date === sat)).toBe(false);
+    for (const started of [false, true]) {
+      const p = replanFuture(s, days, sat, started);
+      expect(p.drafts[0]).toMatchObject({ date: '2026-11-23', pageFrom: 1 + 20 });
+      expectTiling(p.drafts, 21, 100);
+    }
+  });
+
+  it('modo capitoli: recomeça no meio de um capítulo e continua consecutivo', () => {
+    const s: PlanStudy = {
+      ...base,
+      splitMode: 'capitoli',
+      chapters: [
+        { n: 1, startPage: 1 },
+        { n: 2, startPage: 41 },
+        { n: 3, startPage: 71 },
+      ],
+      examDate: '2026-11-26',
+    };
+    const days = toDays(1, buildPlan(s, MON, 1));
+    days.filter((d) => d.date < today).forEach((d) => (d.pagesDone = 5));
+    const { drafts } = replanFuture(s, days, today, false);
+    expectTiling(drafts, 16, 100);
+    expect(drafts[0].chapters![0]).toBe(1); // pág. 16 ainda é do capítulo 1
+  });
+
+  it('o equilíbrio não recebe a tarefa de hoje (só amanhã em diante)', () => {
+    const { all } = afterOpening();
+    const entries = baseFromDrafts(all, today);
+    expect(entries.every((e) => e.date > today)).toBe(true);
+    expect(entries.length).toBe(all.filter((d) => d.date > today).length);
   });
 });

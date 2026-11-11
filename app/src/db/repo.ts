@@ -1,5 +1,12 @@
 import { todayISO, type ISODate } from '../lib/dates';
-import { initialPlan, replanFuture, type DraftDay } from '../plan/core';
+import {
+  draftPages,
+  hasStartedToday,
+  initialPlan,
+  replanFuture,
+  type DraftDay,
+} from '../plan/core';
+import { assessPace } from '../plan/pace';
 import { rebalanceStudies } from '../plan/rebalance';
 import { db } from './db';
 import type { PlanDay, Session, Study } from './types';
@@ -51,70 +58,105 @@ export async function createStudy(input: StudyInput, today: ISODate = todayISO()
   return id;
 }
 
-/** Edição: mantém passado e hoje; refaz o resto (ou tudo, se ainda não começou). */
+/**
+ * Refaz o plano do estudo (6.5) com a regra de páginas consecutivas. Dentro de uma transação.
+ * Devolve o ritmo (páginas/dia) do plano novo, ou null se nada foi refeito.
+ */
+async function replanTx(study: Study, today: ISODate): Promise<number | null> {
+  const id = study.id!;
+  if (study.examDate <= today) return null;
+  const days = await db.planDays.where('studyId').equals(id).toArray();
+  const sessionsToday = await db.sessions.where('[studyId+date]').equals([id, today]).count();
+  const started = hasStartedToday(days, today, sessionsToday > 0);
+  const p = replanFuture(study, days, today, started);
+  await db.planDays
+    .where('studyId')
+    .equals(id)
+    .filter((d) => (started ? d.date > today : d.date >= today))
+    .delete();
+  await db.planDays.bulkAdd(toRows(id, p.drafts));
+  await db.studies.put({ ...study, basePlan: p.basePlan });
+  const studio = p.drafts.filter((d) => d.kind === 'studio');
+  const pages = studio.reduce((n, d) => n + draftPages(d), 0);
+  return studio.length ? Math.ceil(pages / studio.length) : null;
+}
+
+/** Edição: se o estudo ainda não começou, refaz tudo; senão mantém o passado e replaneja. */
 export async function updateStudy(id: number, input: StudyInput, today: ISODate = todayISO()) {
-  await db.transaction('rw', db.studies, db.planDays, async () => {
+  await db.transaction('rw', db.studies, db.planDays, db.sessions, async () => {
     const old = await db.studies.get(id);
     if (!old) return;
     const days = await db.planDays.where('studyId').equals(id).toArray();
-    const started = days.some((d) => d.date <= today);
     const next: Study = { ...old, ...input };
-    if (!started) {
+    if (!days.some((d) => d.date <= today)) {
       const p = initialPlan(next, today);
       await db.planDays.where('studyId').equals(id).delete();
       await db.planDays.bulkAdd(toRows(id, p.drafts));
       await db.studies.put({ ...next, basePlan: p.basePlan, basePagesPerDay: p.basePagesPerDay });
     } else {
-      const kept = days.filter((d) => d.date <= today);
-      const p = replanFuture(next, kept, today);
-      const studioCount = p.drafts.filter((d) => d.kind === 'studio').length;
-      const remaining = p.basePlan.reduce((s, b) => s + b.pages, 0);
-      await db.planDays
-        .where('studyId')
-        .equals(id)
-        .filter((d) => d.date > today)
-        .delete();
-      await db.planDays.bulkAdd(toRows(id, p.drafts));
-      await db.studies.put({
-        ...next,
-        basePlan: p.basePlan,
-        basePagesPerDay: studioCount ? Math.ceil(remaining / studioCount) : old.basePagesPerDay,
-      });
+      const perDay = await replanTx(next, today);
+      if (perDay) await db.studies.update(id, { basePagesPerDay: perDay });
     }
   });
   await rebalanceAll(today);
 }
 
 /**
- * 6.5 — redistribuição confirmada pela Ema (Avviso di ritmo). Opcionalmente adiciona
- * um dia da semana ao estudo. Passado e hoje não mudam; depois roda o equilíbrio.
+ * Avviso di ritmo: "Ridistribuisci" / "Aggiungi [dia]". Refaz o plano (com o dia extra,
+ * se for o caso) e o novo ritmo vira a referência do alerta.
  */
 export async function redistribute(id: number, today: ISODate = todayISO(), addWeekday?: number) {
-  await db.transaction('rw', db.studies, db.planDays, async () => {
+  await db.transaction('rw', db.studies, db.planDays, db.sessions, async () => {
     const old = await db.studies.get(id);
     if (!old) return;
     const study: Study = addWeekday
       ? { ...old, weekdays: [...new Set([...old.weekdays, addWeekday])].sort() }
       : old;
-    const days = await db.planDays.where('studyId').equals(id).toArray();
-    const p = replanFuture(study, days, today);
-    const studioCount = p.drafts.filter((d) => d.kind === 'studio').length;
-    const remaining = p.basePlan.reduce((n, b) => n + b.pages, 0);
-    await db.planDays
-      .where('studyId')
-      .equals(id)
-      .filter((d) => d.date > today)
-      .delete();
-    await db.planDays.bulkAdd(toRows(id, p.drafts));
-    await db.studies.put({
-      ...study,
-      basePlan: p.basePlan,
-      // o novo ritmo vira a referência do alerta (6.5b)
-      basePagesPerDay: studioCount ? Math.ceil(remaining / studioCount) : old.basePagesPerDay,
+    const perDay = await replanTx(study, today);
+    await db.studies.update(id, {
+      weekdays: study.weekdays,
       paceSnoozedOn: today,
+      ...(perDay ? { basePagesPerDay: perDay } : {}),
     });
   });
   await rebalanceAll(today);
+}
+
+/** Refaz o plano de um estudo depois de uma mudança de progresso (6.5: "a cada mudança"). */
+export async function replanStudy(id: number, today: ISODate = todayISO()) {
+  await db.transaction('rw', db.studies, db.planDays, db.sessions, async () => {
+    const study = await db.studies.get(id);
+    if (study && !study.archived) await replanTx(study, today);
+  });
+  await rebalanceAll(today);
+}
+
+/**
+ * Primeira abertura do dia: para cada estudo que ela ainda não começou hoje, o plano parte
+ * de hoje (a tarefa de hoje começa na primeira página não feita; o atraso se distribui).
+ */
+export async function dailyReplan(today: ISODate = todayISO()) {
+  const settings = await db.settings.get(1);
+  if (!settings || settings.lastDailyReplan === today) return;
+  await db.transaction('rw', db.studies, db.planDays, db.sessions, db.settings, async () => {
+    for (const s of await db.studies.filter((x) => !x.archived).toArray()) await replanTx(s, today);
+    await db.settings.update(1, { lastDailyReplan: today });
+  });
+  await rebalanceAll(today);
+}
+
+/** "Lascia com'è": aceita o novo ritmo como referência (o plano não muda). */
+export async function acceptNewPace(id: number, today: ISODate = todayISO()) {
+  const study = await db.studies.get(id);
+  if (!study) return;
+  const days = await db.planDays.where('studyId').equals(id).toArray();
+  const pace = assessPace(study, days, today);
+  await db.studies.update(id, {
+    paceSnoozedOn: today,
+    ...(Number.isFinite(pace.newPerDay) && pace.newPerDay > 0
+      ? { basePagesPerDay: pace.newPerDay }
+      : {}),
+  });
 }
 
 /** "Lascia com'è": não mostrar o aviso de novo hoje. */
@@ -151,6 +193,7 @@ export async function setProgress(dayId: number, pagesDone: number) {
       : 0;
   const n = Math.max(0, Math.min(total, Math.round(pagesDone)));
   await db.planDays.update(dayId, { pagesDone: n, done: total > 0 && n >= total });
+  await replanStudy(day.studyId);
 }
 
 export async function markDone(dayId: number) {
@@ -162,10 +205,13 @@ export async function markDone(dayId: number) {
   }
   const total = day.pageFrom != null && day.pageTo != null ? day.pageTo - day.pageFrom + 1 : 0;
   await db.planDays.update(dayId, { pagesDone: total, done: true });
+  await replanStudy(day.studyId);
 }
 
 export async function unmarkDone(dayId: number) {
+  const day = await db.planDays.get(dayId);
   await db.planDays.update(dayId, { done: false, pagesDone: 0 });
+  if (day) await replanStudy(day.studyId);
 }
 
 export const setSummary = (studyId: number, summary: string) =>

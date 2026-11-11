@@ -138,4 +138,6 @@ export interface Settings {
   accessCode: string;
   deviceId: string;
   lastBackupAt?: string;
+  /** Último dia em que o plano foi refeito na primeira abertura. */
+  lastDailyReplan?: ISODate;
 }

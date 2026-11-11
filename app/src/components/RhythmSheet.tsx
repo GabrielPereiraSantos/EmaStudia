@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { redistribute, snoozePace } from '../db/repo';
+import { acceptNewPace, redistribute, snoozePace } from '../db/repo';
 import type { PlanDay, Study } from '../db/types';
 import { SUBJECT_COLORS } from '../lib/colors';
 import { todayISO } from '../lib/dates';
@@ -46,8 +46,13 @@ export function RhythmSheet({ study, days, onClose }: Props) {
       setBusy(false);
     }
   };
+  // Fechar tocando fora só esconde o aviso hoje; "Lascia com'è" aceita o novo ritmo.
   const dismiss = async () => {
     await snoozePace(study.id!, today);
+    onClose();
+  };
+  const keep = async () => {
+    await acceptNewPace(study.id!, today);
     onClose();
   };
 
@@ -118,7 +123,7 @@ export function RhythmSheet({ study, days, onClose }: Props) {
         >
           Conferma il nuovo piano
         </button>
-        <button type="button" className="sheet-skip" onClick={() => void dismiss()}>
+        <button type="button" className="sheet-skip" onClick={() => void keep()}>
           Lascia com'è
         </button>
       </div>
