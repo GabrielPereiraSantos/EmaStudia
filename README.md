@@ -134,7 +134,26 @@ npx wrangler secret put ACCESS_CODE -c worker/wrangler.toml
 npx wrangler secret put VAPID_PRIVATE_KEY -c worker/wrangler.toml
 ```
 
-(O `GEMINI_API_KEY` entra na Fase 5.)
+```bash
+npx wrangler secret put GEMINI_API_KEY -c worker/wrangler.toml
+```
+
+(Para o `GEMINI_API_KEY`, veja o passo 6.1.)
+
+#### 6.1 Chave e modelo do Gemini
+
+1. Abra <https://aistudio.google.com/apikey> e entre com uma conta Google.
+2. Toque em **Create API key** (não é preciso cadastrar cartão; o plano gratuito basta).
+3. Copie a chave e cole quando o comando `npx wrangler secret put GEMINI_API_KEY ...` pedir. Ela nunca vai para o código nem para o Git: fica só no Worker.
+4. **Confirme o nome do modelo.** No AI Studio, veja na lista de modelos qual **Flash** está disponível no plano gratuito e o nome exato (ex.: `gemini-2.5-flash`). Coloque esse nome em `worker/wrangler.toml`:
+
+   ```toml
+   GEMINI_MODEL = "gemini-2.5-flash"
+   ```
+
+   **Se a cota gratuita do Flash for pouca**, use a versão **Flash-Lite** (mais leve; costuma ter cota gratuita maior; confira no AI Studio), por exemplo `GEMINI_MODEL = "gemini-2.5-flash-lite"`. Depois de trocar, publique o Worker de novo (passo 7).
+
+5. O limite diário do app é `GEMINI_DAILY_LIMIT` (padrão `20`), no mesmo arquivo. A contagem vira à meia-noite no fuso do iPhone dela, e o uso aparece em **Impostazioni → Gemini**. Se o Gemini falhar ou o limite acabar, o app oferece o plano B (ChatGPT ou escrever à mão).
 
 ### 7. Publicar o Worker
 

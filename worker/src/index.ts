@@ -7,7 +7,20 @@ import type { Env } from './env';
 import { sendPush } from './push';
 import { TEST_MESSAGE } from './reminders';
 import { safeEqual } from './security';
-import { isDeviceId, parseSchedule, parseSubscription } from './validate';
+import {
+  buildPrompt,
+  callGemini,
+  dailyLimit,
+  getUsage,
+  parseGeminiRequest,
+  refundUsage,
+  reserveUsage,
+  responseSchema,
+  validateQuestions,
+  validateSummary,
+} from './gemini';
+import { localNow } from './reminders';
+import { isDeviceId, isTimezone, parseSchedule, parseSubscription } from './validate';
 
 export const app = new Hono<{ Bindings: Env }>();
 
@@ -85,6 +98,42 @@ app.delete('/api/device', async (c) => {
   if (!body || !isDeviceId(body.deviceId)) return c.json({ error: 'invalid' }, 400);
   await deleteDevice(c.env.DB, body.deviceId);
   return c.json({ ok: true });
+});
+
+// ---------- Gemini (seção 8) ----------
+const today = (tz: string) => localNow(isTimezone(tz) ? tz : 'UTC', Date.now()).date;
+
+app.get('/api/gemini/usage', async (c) => {
+  const limit = dailyLimit(c.env.GEMINI_DAILY_LIMIT);
+  const used = await getUsage(c.env.DB, today(c.req.query('tz') ?? 'UTC'));
+  return c.json({ used, limit });
+});
+
+app.post('/api/gemini/:kind', async (c) => {
+  const req = parseGeminiRequest(c.req.param('kind'), await readJson(c), isTimezone);
+  if (!req) return c.json({ error: 'invalid' }, 400);
+  if (!c.env.GEMINI_API_KEY) return c.json({ error: 'not-configured' }, 503);
+  const limit = dailyLimit(c.env.GEMINI_DAILY_LIMIT);
+  const day = today(req.timezone);
+  const used = await reserveUsage(c.env.DB, day, limit);
+  if (used === null) return c.json({ error: 'quota', used: limit, limit }, 429);
+
+  const raw = await callGemini(
+    c.env.GEMINI_API_KEY,
+    c.env.GEMINI_MODEL,
+    buildPrompt(req),
+    responseSchema(req.kind),
+  );
+  const result = req.kind === 'riassunto' ? validateSummary(raw) : validateQuestions(req.kind, raw);
+  if (!result) {
+    await refundUsage(c.env.DB, day); // falhou: não conta
+    return c.json({ error: 'gemini' }, 502);
+  }
+  return c.json(
+    req.kind === 'riassunto'
+      ? { ok: true, summary: result, used, limit }
+      : { ok: true, questions: result, used, limit },
+  );
 });
 
 app.notFound((c) => c.json({ error: 'not-found' }, 404));

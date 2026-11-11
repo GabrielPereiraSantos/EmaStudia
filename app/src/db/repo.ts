@@ -125,6 +125,7 @@ export async function redistribute(id: number, today: ISODate = todayISO(), addW
 
 /** Refaz o plano de um estudo depois de uma mudança de progresso (6.5: "a cada mudança"). */
 export async function replanStudy(id: number, today: ISODate = todayISO()) {
+  void import('./quizRepo').then((m) => m.ensureQuizzes(today));
   await db.transaction('rw', db.studies, db.planDays, db.sessions, async () => {
     const study = await db.studies.get(id);
     if (study && !study.archived) await replanTx(study, today);

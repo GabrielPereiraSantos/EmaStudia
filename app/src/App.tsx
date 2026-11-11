@@ -11,8 +11,10 @@ import { useRoute } from './lib/router';
 import { Calendario } from './pages/Calendario';
 import { Home } from './pages/Home';
 import { Premi } from './pages/Premi';
+import { QuizList } from './pages/QuizList';
+import { QuizPlay } from './pages/QuizPlay';
+import { QuizWrite } from './pages/QuizWrite';
 import { RewardForm } from './pages/RewardForm';
-import { Placeholder } from './pages/Placeholder';
 import { StudyForm } from './pages/StudyForm';
 import { StudyPage } from './pages/StudyPage';
 
@@ -43,7 +45,9 @@ export function App() {
     const run = () =>
       void ensureSettings()
         .then(() => dailyReplan())
-        .then(() => awardCoins());
+        .then(() => awardCoins())
+        .then(() => import('./db/quizRepo'))
+        .then((m) => m.ensureQuizzes());
     run();
     // se o app ficar aberto de um dia para o outro
     const onVisible = () => document.visibilityState === 'visible' && run();
@@ -68,9 +72,11 @@ export function App() {
   } else if (a === 'calendario') {
     tab = 'calendario';
     page = <Calendario />;
-  } else if (a === 'quiz') {
+  } else if (a === 'quiz' && b && c === 'scrivi') page = <QuizWrite id={Number(b)} />;
+  else if (a === 'quiz' && b) page = <QuizPlay id={Number(b)} />;
+  else if (a === 'quiz') {
     tab = 'quiz';
-    page = <Placeholder title="Quiz" />;
+    page = <QuizList />;
   } else if (a === 'impostazioni') page = <Impostazioni />;
   else page = <Home />;
 

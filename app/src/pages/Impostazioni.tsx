@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BackButton } from '../components/BackButton';
 import { db } from '../db/db';
 import { api, API_URL } from '../lib/api';
+import { geminiUsage } from '../lib/gemini';
 import { ENABLE_MESSAGES, enableNotifications, hasPushSubscription } from '../lib/push';
 import { go } from '../lib/router';
 import { syncSchedule } from '../lib/sync';
@@ -16,8 +17,10 @@ export function Impostazioni() {
   const [newCode, setNewCode] = useState('');
   const [editCode, setEditCode] = useState(false);
 
+  const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
   useEffect(() => {
     void hasPushSubscription().then(setSubscribed);
+    void geminiUsage().then(setUsage);
   }, []);
 
   if (!settings) return <div className="page" />;
@@ -153,6 +156,21 @@ export function Impostazioni() {
                 Salva
               </button>
             </div>
+          </div>
+        )}
+      </section>
+
+      <section className="card">
+        <p className="sec-label">GEMINI</p>
+        <div className="row-between">
+          <span>Richieste usate oggi</span>
+          <strong>{usage ? `${usage.used} di ${usage.limit}` : '—'}</strong>
+        </div>
+        {usage && (
+          <div className="bar">
+            <i
+              style={{ width: `${Math.min(100, (usage.used / Math.max(1, usage.limit)) * 100)}%` }}
+            />
           </div>
         )}
       </section>

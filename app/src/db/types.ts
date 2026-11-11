@@ -89,16 +89,32 @@ export interface Session {
   manual?: boolean;
 }
 
+export interface Question {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation?: string;
+  /** Exercícios: resolução passo a passo. */
+  solution?: string;
+}
+
 export interface Quiz {
   id?: number;
   studyId: number;
   kind: 'quiz' | 'esercizi';
+  /** Identidade única por estudo ("cap:3", "studio", "esercizi"): nunca gerar duas vezes. */
+  key: string;
   chapter?: number;
-  questions: unknown[];
+  chapterTitle?: string;
+  questions: Question[];
   answers: number[];
   score: number;
   coinsAwarded: number;
-  status: 'disponibile' | 'completato';
+  /** in-attesa = ainda sem perguntas (gerando ou plano B). */
+  status: 'in-attesa' | 'disponibile' | 'completato';
+  /** gemini e chatgpt valem moedinhas; manuale ("Scrivi tu") não. */
+  source?: 'gemini' | 'chatgpt' | 'manuale';
+  failReason?: 'quota' | 'errore' | 'offline';
   createdAt: string;
 }
 

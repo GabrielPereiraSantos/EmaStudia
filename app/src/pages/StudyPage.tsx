@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { ConfirmSheet } from '../components/ConfirmSheet';
+import { geminiSummary, openChatGpt, PLAN_B_MESSAGE, type GeminiError } from '../lib/gemini';
+import { chatGptSummaryPrompt } from '../plan/quizzes';
 import { format, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { AddTime } from '../components/AddTime';
@@ -43,6 +46,10 @@ export function StudyPage({ id }: { id: number }) {
   const [addTime, setAddTime] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [toast, setToast] = useState('');
+  const [summaryBusy, setSummaryBusy] = useState(false);
+  const [summaryFail, setSummaryFail] = useState<GeminiError | null>(null);
+  const [askReplace, setAskReplace] = useState<string | null>(null);
+  const summaryRef = useRef<HTMLTextAreaElement>(null);
   const [partial, setPartial] = useState<string | null>(null);
 
   if (!data) return <div className="page" />;
@@ -93,6 +100,37 @@ export function StudyPage({ id }: { id: number }) {
       flash('Ricorda di avviare il cronometro per guadagnare le monetine');
   };
 
+  const summaryCtx = () => ({
+    study,
+    notes: notes.map((n) => n.text),
+  });
+  const makeSummary = async () => {
+    setSummaryBusy(true);
+    setSummaryFail(null);
+    const r = await geminiSummary(summaryCtx());
+    setSummaryBusy(false);
+    if (!r.ok) return setSummaryFail(r.error);
+    // não apaga o que ela escreveu sem perguntar
+    if (study.summary.trim()) setAskReplace(r.summary);
+    else await setSummary(id, r.summary);
+  };
+  const summaryChatGpt = async () => {
+    const copied = await openChatGpt(
+      chatGptSummaryPrompt({
+        subject: study.subject,
+        topic: study.topic,
+        difficulty: study.difficulty,
+        notes: notes.map((n) => n.text),
+        summary: '',
+      }),
+    );
+    flash(
+      copied
+        ? 'Prompt copiato! Incolla il riassunto di ChatGPT qui sopra.'
+        : 'Apri ChatGPT e chiedi il riassunto.',
+    );
+  };
+
   return (
     <div className="page study">
       <div className="page-head between">
@@ -131,21 +169,47 @@ export function StudyPage({ id }: { id: number }) {
       <section className="card summary" style={{ background: c.bg }}>
         <div className="row-between">
           <p className="card-title">Riassunto</p>
-          <button type="button" className="gemini-btn" disabled title="Disponibile presto">
-            Genera con Gemini
+          <button
+            type="button"
+            className="gemini-btn"
+            disabled={summaryBusy}
+            onClick={() => void makeSummary()}
+          >
+            {summaryBusy ? 'Sto scrivendo…' : 'Genera con Gemini'}
           </button>
         </div>
         <textarea
-          key={study.id + ':' + study.summary.length}
+          ref={summaryRef}
+          key={study.id + ':' + study.summary}
           aria-label="Riassunto"
           placeholder="Scrivi qui il riassunto…"
           defaultValue={study.summary}
           maxLength={2000}
-          rows={3}
+          rows={study.summary.length > 200 ? 8 : 3}
           onBlur={(e) => {
             if (e.target.value !== study.summary) void setSummary(id, e.target.value);
           }}
         />
+        {summaryFail && (
+          <div className="planb">
+            <p className="muted">{PLAN_B_MESSAGE[summaryFail]}</p>
+            <div className="planb-btns">
+              <button type="button" className="soft" onClick={() => void summaryChatGpt()}>
+                Apri in ChatGPT
+              </button>
+              <button
+                type="button"
+                className="soft"
+                onClick={() => {
+                  setSummaryFail(null);
+                  summaryRef.current?.focus();
+                }}
+              >
+                Scrivi tu
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="card">
@@ -280,6 +344,18 @@ export function StudyPage({ id }: { id: number }) {
           minDate={study.startDate}
           onClose={() => setAddTime(false)}
           onSaved={(m, d) => flash(`Aggiunti ${m} min al ${format(parseISO(d), 'dd/MM')}.`)}
+        />
+      )}
+      {askReplace !== null && (
+        <ConfirmSheet
+          title="Sostituire il riassunto?"
+          text="Gemini ha scritto un nuovo riassunto. Quello che hai adesso verrà sostituito."
+          confirmLabel="Sì, sostituisci"
+          onConfirm={async () => {
+            await setSummary(id, askReplace);
+            setAskReplace(null);
+          }}
+          onClose={() => setAskReplace(null)}
         />
       )}
       {sheet && <RhythmSheet study={study} days={days} onClose={() => setSheet(false)} />}
