@@ -11,6 +11,7 @@ export default defineConfig({
       filename: 'sw.ts',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] },
       manifest: {
         name: 'Ema studia',
         short_name: 'Ema studia',

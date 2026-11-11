@@ -79,7 +79,7 @@ export function Benvenuta() {
   };
 
   return (
-    <div className="welcome">
+    <main className="welcome">
       <div className="welcome-hero">
         <div className="wb1" />
         <div className="wb2" />
@@ -183,7 +183,7 @@ export function Benvenuta() {
                 height="20"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#fff"
+                stroke="currentColor"
                 strokeWidth="2.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -199,6 +199,6 @@ export function Benvenuta() {
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 }

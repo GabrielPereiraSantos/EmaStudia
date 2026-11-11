@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
+import { createMiddleware } from 'hono/factory';
 import { runCron } from './cron';
 import { deleteDevice, dropSubscription, getDevice, saveSchedule, saveSubscription } from './db';
 import type { Env } from './env';
@@ -19,10 +20,24 @@ import {
   validateQuestions,
   validateSummary,
 } from './gemini';
+import { LIMITS_PER_MINUTE, hit } from './ratelimit';
 import { localNow } from './reminders';
 import { isDeviceId, isTimezone, parseSchedule, parseSubscription } from './validate';
 
 export const app = new Hono<{ Bindings: Env }>();
+
+/** Quem está chamando (para os limites por minuto). */
+const clientId = (c: { req: { header: (n: string) => string | undefined } }) =>
+  c.req.header('CF-Connecting-IP') ?? 'local';
+
+/** Limite por minuto numa rota (depois do código de acesso). */
+const limit = (name: keyof typeof LIMITS_PER_MINUTE) =>
+  createMiddleware<{ Bindings: Env }>(async (c, next) => {
+    if ((await hit(c.env.DB, `${name}:${clientId(c)}`, Date.now())) > LIMITS_PER_MINUTE[name]) {
+      return c.json({ error: 'too-many' }, 429, { 'Retry-After': '60' });
+    }
+    await next();
+  });
 
 app.use('*', async (c, next) => {
   await next();
@@ -46,6 +61,10 @@ app.use('*', async (c, next) => {
   if (c.req.method === 'OPTIONS') return next();
   const code = c.req.header('X-Access-Code') ?? '';
   if (!c.env.ACCESS_CODE || !(await safeEqual(code, c.env.ACCESS_CODE))) {
+    // Contra adivinhação do código: poucas tentativas erradas por minuto.
+    if ((await hit(c.env.DB, `bad:${clientId(c)}`, Date.now())) > LIMITS_PER_MINUTE.badCode) {
+      return c.json({ error: 'too-many' }, 429, { 'Retry-After': '60' });
+    }
     return c.json({ error: 'unauthorized' }, 401);
   }
   return next();
@@ -66,21 +85,21 @@ const readJson = async (c: { req: { json: () => Promise<unknown> } }) => {
 
 app.post('/api/ping', (c) => c.json({ ok: true }));
 
-app.put('/api/subscription', async (c) => {
+app.put('/api/subscription', limit('subscription'), async (c) => {
   const p = parseSubscription(await readJson(c));
   if (!p) return c.json({ error: 'invalid' }, 400);
   await saveSubscription(c.env.DB, p, Date.now());
   return c.json({ ok: true });
 });
 
-app.put('/api/schedule', async (c) => {
+app.put('/api/schedule', limit('schedule'), async (c) => {
   const p = parseSchedule(await readJson(c));
   if (!p) return c.json({ error: 'invalid' }, 400);
   await saveSchedule(c.env.DB, p, Date.now());
   return c.json({ ok: true, reminders: p.reminders.reduce((n, r) => n + r.dates.length, 0) });
 });
 
-app.post('/api/test-notification', async (c) => {
+app.post('/api/test-notification', limit('test'), async (c) => {
   const body = (await readJson(c)) as { deviceId?: unknown } | null;
   if (!body || !isDeviceId(body.deviceId)) return c.json({ error: 'invalid' }, 400);
   const device = await getDevice(c.env.DB, body.deviceId);

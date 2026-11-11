@@ -90,7 +90,7 @@ export function App() {
 
   return (
     <div className="app">
-      {page}
+      <main>{page}</main>
       {tab && <BottomNav active={tab} />}
     </div>
   );

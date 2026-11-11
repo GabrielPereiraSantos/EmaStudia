@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { db } from '../db/db';
 import { finishQuiz } from '../db/quizRepo';
-import { SUBJECT_COLORS } from '../lib/colors';
+import { readableFill, SUBJECT_COLORS } from '../lib/colors';
 import { go, studyPath } from '../lib/router';
 import { useLive } from '../lib/useLive';
 import { quizLabel } from './QuizList';
@@ -205,7 +205,7 @@ export function QuizPlay({ id }: { id: number }) {
         <div className="bar" aria-hidden="true">
           <i style={{ width: `${(i / n) * 100}%`, background: c.accent }} />
         </div>
-        <h2 className="q-text">{q.question}</h2>
+        <h1 className="q-text">{q.question}</h1>
         <div className="options" role="radiogroup" aria-label="Risposte">
           {q.options.map((o, k) => (
             <button
@@ -214,7 +214,7 @@ export function QuizPlay({ id }: { id: number }) {
               aria-checked={pick === k}
               key={k}
               className={'option' + (pick === k ? ' on' : '')}
-              style={pick === k ? { background: c.accent, color: '#fff' } : undefined}
+              style={pick === k ? { background: readableFill(c.accent), color: '#fff' } : undefined}
               onClick={() => setPick(k)}
             >
               {o}

@@ -14,7 +14,7 @@ design/   referências visuais e ícones
 
 ## Como rodar
 
-Requer Node 20+.
+Requer Node 22 (ou mais novo).
 
 ```bash
 npm install
@@ -64,7 +64,7 @@ Para o app falar com o Worker local, crie `app/.env.local` com `VITE_API_URL=htt
 
 ## Segredos
 
-Nunca vão para o Git: `ACCESS_CODE`, `VAPID_PRIVATE_KEY` e `GEMINI_API_KEY` ficam só como segredos do Worker (`npx wrangler secret put ...`). `worker/.dev.vars` e `app/.env.local` estão no `.gitignore`. A chave VAPID **pública** e o endereço do Worker não são segredos.
+Nunca vão para o Git: `ACCESS_CODE`, `VAPID_PRIVATE_KEY` e `GEMINI_API_KEY` ficam só como segredos do Worker (`npx wrangler secret put ...`). `worker/.dev.vars` e `app/.env.local` estão no `.gitignore`. A chave VAPID **pública** e o endereço do Worker não são segredos. O código de acesso fica só no aparelho dela (e nunca entra no arquivo de backup).
 
 ## Deploy passo a passo (custo zero)
 
@@ -220,3 +220,65 @@ npx wrangler tail -c worker/wrangler.toml
 
 - App: basta `git push`; o Pages publica sozinho.
 - Worker: `npm run deploy -w worker`. Se houver migração nova: `npm run db:migrate -w worker`.
+
+## Backup e restauração
+
+Os dados da Ema ficam **só no iPhone dela** (Impostazioni → Backup).
+
+- **Salvar backup:** Impostazioni → **Salva backup**. No iPhone abre a folha de compartilhamento (Arquivos, iCloud Drive, AirDrop…); em outros aparelhos baixa um `ema-studia-backup-AAAA-MM-DD.json`. O app avisa na Home quando o último backup tem mais de 14 dias.
+- **O que vai no arquivo:** estudos, planos, notas, sessões, quizzes, moedinhas, prêmios, resgates e os valores das Impostazioni. **Não vai** o código de acesso nem o identificador do aparelho. Mesmo assim o arquivo tem as notas e os estudos dela: guarde num lugar seguro.
+- **Restaurar:** num aparelho novo (ou depois de limpar os dados), abra o app instalado, digite o código de acesso, vá em Impostazioni → **Ripristina** e escolha o arquivo. O app confere o arquivo (versão e formato) antes de tocar em qualquer dado, pede confirmação e **substitui tudo** de uma vez; se algo estiver errado, nada muda. Depois do restauro, ative de novo as notificações (a assinatura é do aparelho).
+
+## Segurança (resumo)
+
+| Proteção                                                                         | Onde                          |
+| -------------------------------------------------------------------------------- | ----------------------------- |
+| Código de acesso em **todas** as rotas (comparação em tempo constante)           | Worker                        |
+| Tentativas com código errado limitadas (10 por minuto)                           | Worker                        |
+| Limite por minuto: agenda 20, assinatura 10, notificação de prova 5              | Worker                        |
+| Limite diário do Gemini (`GEMINI_DAILY_LIMIT`) e limite de corpo (64 KB)         | Worker                        |
+| CORS só para o endereço do app (`ALLOWED_ORIGIN`)                                | Worker                        |
+| Entrada e resposta do Gemini validadas; textos mostrados como texto (nunca HTML) | Worker e app                  |
+| CSP, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`           | `app/public/_headers` (Pages) |
+| Nenhum segredo no front-end nem no Git (conferido no histórico)                  | Todo o repositório            |
+| Arquivo de backup validado antes de restaurar                                    | App                           |
+
+Se o Worker usar um **domínio próprio** (e não `*.workers.dev`), troque `https://*.workers.dev` na linha `Content-Security-Policy` de `app/public/_headers` pelo endereço dele, senão o navegador bloqueia as chamadas.
+
+**Avisos do `npm audit`:** em tudo o que vai para produção (`npm audit --omit=dev`) não há vulnerabilidades. Os avisos que aparecem no `npm audit` completo vêm só de ferramentas de desenvolvimento (`eslint` e o gerador do service worker); não chegam ao app nem ao Worker, e a correção automática exigiria atualizações que quebram o projeto.
+
+## Lista de conferência
+
+### Antes do deploy
+
+- [ ] Conta Cloudflare criada e `npx wrangler login` feito (passos 1 e 3).
+- [ ] `database_id` do D1 colocado em `worker/wrangler.toml` e `npm run db:migrate -w worker` rodado (passo 4: cria as 3 migrações).
+- [ ] Chaves VAPID geradas; a **pública** em `worker/wrangler.toml` e `VAPID_SUBJECT` com o seu e-mail; a **privada** só como segredo (passo 5).
+- [ ] Segredos cadastrados: `ACCESS_CODE`, `VAPID_PRIVATE_KEY`, `GEMINI_API_KEY` (passo 6).
+- [ ] `GEMINI_MODEL` confirmado no Google AI Studio (e `gemini-2.5-flash-lite` como reserva se a cota for pouca).
+- [ ] Worker publicado (`npm run deploy -w worker`) e o endereço anotado (passo 7).
+- [ ] Pages criado com **Build command** `npm run build`, **Build output directory** `app/dist`, **Root directory** vazio, e as variáveis `NODE_VERSION=22`, `VITE_API_URL` e `VITE_VAPID_PUBLIC_KEY` (passo 8).
+- [ ] `ALLOWED_ORIGIN` em `worker/wrangler.toml` com o endereço **exato** do Pages (sem barra no fim) e o Worker publicado de novo (passo 9).
+- [ ] Nada de segredo em arquivos que vão para o Git (`git status` limpo de `.dev.vars` e `.env.local`).
+- [ ] Rodou `npm run lint`, `npm test` e `npm run build` sem erros.
+
+### Depois do deploy (no iPhone da Ema)
+
+- [ ] Abrir o link no **Safari**: aparece o guia de 4 passos e **não** há botão "Continua nel browser".
+- [ ] Instalar (Condividi → Aggiungi alla schermata Home) e abrir **pelo ícone**.
+- [ ] Digitar o código de acesso → "Attiva le notifiche" → Consenti.
+- [ ] Impostazioni → **Invia notifica di prova**: a notificação chega e, ao tocar, abre o app.
+- [ ] Criar um estudo com lembrete para daqui a uns 10 minutos: a notificação chega no horário, com a nota.
+- [ ] Concluir um capítulo (ou o último dia de studio): aparece o quiz do Gemini; Impostazioni mostra "Richieste usate oggi".
+- [ ] Impostazioni → **Salva backup** e guardar o arquivo; testar **Ripristina** num navegador de computador para ter certeza de que funciona.
+- [ ] Confirmar que o app abre sem internet (modo avião): a tela, a fonte e os dados continuam aparecendo.
+
+### Se algo não funcionar
+
+| Sintoma                             | O que ver                                                                                                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Codice non valido" na Benvenuta    | O código digitado é o mesmo do `ACCESS_CODE`? (`npx wrangler secret put ACCESS_CODE` troca.)                                                                                                |
+| "Non riesco a collegarmi al server" | `VITE_API_URL` certo no Pages? `ALLOWED_ORIGIN` igual ao endereço do app? CSP com o domínio do Worker?                                                                                      |
+| Notificação não chega               | Notificações ligadas em Impostazioni e no iPhone (Ajustes → Notificações → Ema studia); app aberto pelo **ícone**; `npx wrangler tail -c worker/wrangler.toml` mostra as contagens do cron. |
+| Gemini não responde                 | `GEMINI_API_KEY` cadastrada? `GEMINI_MODEL` com um nome que existe? Cota do dia (`GEMINI_DAILY_LIMIT`)? O app oferece o plano B (ChatGPT ou escrever à mão).                                |
+| "Troppi tentativi"                  | O limite por minuto do Worker: espere um minuto e tente de novo.                                                                                                                            |

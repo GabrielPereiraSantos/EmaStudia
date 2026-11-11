@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { needsPaceNotice, RhythmSheet } from '../components/RhythmSheet';
 import { db } from '../db/db';
+import { backupDue } from '../lib/backup';
 import { SUBJECT_COLORS } from '../lib/colors';
 import { formatLongIt, greeting, todayISO } from '../lib/dates';
 import { examIn, taskText, TYPE_LABEL, TYPE_STYLE } from '../lib/labels';
@@ -14,7 +15,12 @@ export function Home() {
   const data = useLive(async () => {
     const studies = (await db.studies.toArray()).filter((s) => !s.archived);
     const all = await db.planDays.toArray();
-    return { studies, days: all.filter((d) => d.date === today), all };
+    return {
+      studies,
+      days: all.filter((d) => d.date === today),
+      all,
+      settings: await db.settings.get(1),
+    };
   }, [today]);
 
   const [closed, setClosed] = useState<number[]>([]);
@@ -82,7 +88,18 @@ export function Home() {
       <section className="today">
         <h2>Oggi</h2>
         {data && studies.length === 0 && (
-          <p className="empty">Nessuno studio ancora — creane uno!</p>
+          <div className="empty-state">
+            <p className="empty">Nessuno studio ancora — creane uno!</p>
+            <button type="button" className="primary small" onClick={() => go('/nuovo')}>
+              Crea il primo studio
+            </button>
+          </div>
+        )}
+        {data && backupDue(data.settings?.lastBackupAt, studies.length > 0) && (
+          <a className="backup-banner" href="#/impostazioni">
+            <strong>Fai un backup</strong>
+            <span>I tuoi dati sono solo su questo dispositivo. Tocca per salvarli.</span>
+          </a>
         )}
         {data && studies.length > 0 && tasks.length === 0 && (
           <p className="empty">Oggi niente in programma. Riposati, Ema.</p>
@@ -106,7 +123,7 @@ export function Home() {
                   </p>
                   <p className="what">{what}</p>
                 </div>
-                <span className="pill" style={{ color: c.accent }}>
+                <span className="pill" style={{ color: '#2E7D3A' }}>
                   Fatto
                 </span>
               </a>
@@ -147,7 +164,7 @@ export function Home() {
           height="28"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#fff"
+          stroke="currentColor"
           strokeWidth="2.6"
           strokeLinecap="round"
           aria-hidden="true"

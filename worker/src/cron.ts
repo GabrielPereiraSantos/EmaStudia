@@ -8,6 +8,7 @@ import {
 } from './db';
 import type { Env } from './env';
 import { sendPush } from './push';
+import { cleanupRateLimits } from './ratelimit';
 import { buildMessage, isDue, localNow, ttlSeconds } from './reminders';
 
 export interface CronReport {
@@ -54,6 +55,7 @@ export async function runCron(
     }
   }
   // lembretes de mais de 2 dias atrás não servem mais
+  await cleanupRateLimits(env.DB, nowMs);
   await cleanupOld(env.DB, new Date(nowMs - 2 * 86_400_000).toISOString().slice(0, 10));
   // só contagens no log (nunca o conteúdo das notas)
   console.log(`cron: ${JSON.stringify(report)}`);

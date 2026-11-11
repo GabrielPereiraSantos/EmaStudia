@@ -8,8 +8,10 @@ interface Props {
   onClose: () => void;
   onSaved: (minutes: number, date: ISODate) => void;
 }
+import { useSheet } from './useSheet';
 
 export function AddTime({ studyId, minDate, onClose, onSaved }: Props) {
+  const sheetRef = useSheet(onClose);
   const today = todayISO();
   const [minutes, setMinutes] = useState('');
   const [date, setDate] = useState(today);
@@ -28,7 +30,7 @@ export function AddTime({ studyId, minDate, onClose, onSaved }: Props) {
   return (
     <div className="sheet-wrap" role="dialog" aria-modal="true" aria-label="Aggiungi tempo">
       <div className="sheet-bg" onClick={onClose} />
-      <div className="sheet">
+      <div className="sheet" ref={sheetRef} tabIndex={-1}>
         <span className="grip" />
         <h2>Aggiungi tempo</h2>
         <p className="how">Hai studiato senza il cronometro? Scrivi quanto.</p>

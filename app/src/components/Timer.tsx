@@ -138,7 +138,7 @@ export function Timer({ studyId, workMin, breakMin, otherStudy, onSaved }: Props
     <section className="timer" aria-label="Cronometro">
       <div className="ring">
         <svg width="210" height="210" viewBox="0 0 210 210" aria-hidden="true">
-          <circle cx="105" cy="105" r={R} fill="#fff" stroke="#FFF0BF" strokeWidth="14" />
+          <circle cx="105" cy="105" r={R} fill="currentColor" stroke="#FFF0BF" strokeWidth="14" />
           <circle
             cx="105"
             cy="105"
@@ -168,7 +168,13 @@ export function Timer({ studyId, workMin, breakMin, otherStudy, onSaved }: Props
           {!mine && (
             <>
               <button type="button" className="t-main" onClick={() => begin('pomodoro')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
                   <path d="M8 5v14l11-7z" />
                 </svg>
                 Inizia
@@ -186,7 +192,13 @@ export function Timer({ studyId, workMin, breakMin, otherStudy, onSaved }: Props
                   className="t-main"
                   onClick={() => update(pauseTimer(mine, Date.now()))}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
                     <path d="M7 5h4v14H7zM13 5h4v14h-4z" />
                   </svg>
                   Pausa
@@ -200,7 +212,13 @@ export function Timer({ studyId, workMin, breakMin, otherStudy, onSaved }: Props
                     setNow(Date.now());
                   }}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
                     <path d="M8 5v14l11-7z" />
                   </svg>
                   Riprendi

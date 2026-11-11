@@ -16,6 +16,7 @@ interface Props {
   days: PlanDay[];
   onClose: () => void;
 }
+import { useSheet } from './useSheet';
 
 export function RhythmSheet({ study, days, onClose }: Props) {
   const today = todayISO();
@@ -56,10 +57,12 @@ export function RhythmSheet({ study, days, onClose }: Props) {
     onClose();
   };
 
+  const sheetRef = useSheet(() => void dismiss());
+
   return (
     <div className="sheet-wrap" role="dialog" aria-modal="true" aria-label="Avviso di ritmo">
       <div className="sheet-bg" onClick={() => void dismiss()} />
-      <div className="sheet">
+      <div className="sheet" ref={sheetRef} tabIndex={-1}>
         <span className="grip" />
         <div className="sheet-top">
           <span className="subj-pill" style={{ background: c.bg }}>

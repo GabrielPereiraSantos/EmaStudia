@@ -123,6 +123,92 @@ describe('segurança', () => {
   });
 });
 
+describe('limite por minuto', () => {
+  const sub = () =>
+    call('/api/subscription', {
+      method: 'PUT',
+      body: JSON.stringify({ deviceId: DEVICE, subscription: { endpoint: 'x' } }),
+    });
+  it('notifica de prova: no máximo 5 por minuto (depois, 429)', async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 7; i++)
+      statuses.push(
+        (
+          await call('/api/test-notification', {
+            method: 'POST',
+            body: JSON.stringify({ deviceId: DEVICE }),
+          })
+        ).status,
+      );
+    expect(statuses.slice(0, 5).every((s) => s === 404)).toBe(true); // passou pelo limite (sem assinatura)
+    expect(statuses.slice(5)).toEqual([429, 429]);
+  });
+  it('agenda e assinatura têm limites próprios', async () => {
+    const out: number[] = [];
+    for (let i = 0; i < 12; i++) out.push((await sub()).status);
+    expect(out.slice(0, 10).every((s) => s === 400)).toBe(true); // corpo inválido, mas contou
+    expect(out.slice(10)).toEqual([429, 429]);
+    // a agenda continua livre: balde separado
+    expect(
+      (await call('/api/schedule', { method: 'PUT', body: JSON.stringify(schedule()) })).status,
+    ).toBe(200);
+    const r = await call('/api/test-notification', {
+      method: 'POST',
+      body: JSON.stringify({ deviceId: DEVICE }),
+    });
+    expect(r.status).not.toBe(429);
+  });
+  it('o limite zera no minuto seguinte', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-11T10:00:10Z'));
+    for (let i = 0; i < 5; i++)
+      await call('/api/test-notification', {
+        method: 'POST',
+        body: JSON.stringify({ deviceId: DEVICE }),
+      });
+    expect(
+      (
+        await call('/api/test-notification', {
+          method: 'POST',
+          body: JSON.stringify({ deviceId: DEVICE }),
+        })
+      ).status,
+    ).toBe(429);
+    vi.setSystemTime(new Date('2026-11-11T10:01:05Z'));
+    expect(
+      (
+        await call('/api/test-notification', {
+          method: 'POST',
+          body: JSON.stringify({ deviceId: DEVICE }),
+        })
+      ).status,
+    ).toBe(404);
+    vi.useRealTimers();
+  });
+  it('tentativas com código errado são limitadas (contra adivinhação)', async () => {
+    const codes: number[] = [];
+    for (let i = 0; i < 12; i++)
+      codes.push((await call('/api/ping', { method: 'POST', code: `errado-${i}` })).status);
+    expect(codes.slice(0, 10).every((s) => s === 401)).toBe(true);
+    expect(codes.slice(10)).toEqual([429, 429]);
+    // 429 também para o código certo? Não: o limite é só para quem erra
+    expect((await call('/api/ping', { method: 'POST' })).status).toBe(200);
+  });
+  it('429 traz Retry-After', async () => {
+    for (let i = 0; i < 6; i++)
+      await call('/api/test-notification', {
+        method: 'POST',
+        body: JSON.stringify({ deviceId: DEVICE }),
+      });
+    const r = await call('/api/test-notification', {
+      method: 'POST',
+      body: JSON.stringify({ deviceId: DEVICE }),
+    });
+    expect(r.status).toBe(429);
+    expect(r.headers.get('Retry-After')).toBe('60');
+  });
+});
+
 describe('validação da agenda', () => {
   it('aceita a agenda mínima e limpa o texto', () => {
     const p = parseSchedule(schedule({ notes: { '1': ['  ciao\u0007 '] } }))!;
