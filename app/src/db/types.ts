@@ -52,6 +52,8 @@ export interface Study {
   basePagesPerDay: number;
   /** Plano individual dos dias futuros, ponto de partida do equilíbrio (6.4). */
   basePlan: BaseEntry[];
+  /** Dia em que a Ema dispensou o Avviso di ritmo (não mostrar de novo no mesmo dia). */
+  paceSnoozedOn?: ISODate;
 }
 
 export interface PlanDay {
@@ -83,6 +85,8 @@ export interface Session {
   startedAt: string;
   durationSec: number;
   mode: 'pomodoro' | 'libero';
+  /** Tempo registrado à mão ("Aggiungi tempo"); conta igual ao do cronômetro. */
+  manual?: boolean;
 }
 
 export interface Quiz {

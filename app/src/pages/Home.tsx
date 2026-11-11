@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { needsPaceNotice, RhythmSheet } from '../components/RhythmSheet';
 import { db } from '../db/db';
 import { SUBJECT_COLORS } from '../lib/colors';
 import { formatLongIt, greeting, todayISO } from '../lib/dates';
@@ -9,10 +11,11 @@ export function Home() {
   const today = todayISO();
   const data = useLive(async () => {
     const studies = (await db.studies.toArray()).filter((s) => !s.archived);
-    const days = await db.planDays.where('date').equals(today).toArray();
-    return { studies, days };
+    const all = await db.planDays.toArray();
+    return { studies, days: all.filter((d) => d.date === today), all };
   }, [today]);
 
+  const [closed, setClosed] = useState<number[]>([]);
   const studies = data?.studies ?? [];
   const byId = new Map(studies.map((s) => [s.id!, s]));
   const tasks = (data?.days ?? [])
@@ -22,6 +25,15 @@ export function Home() {
         Number(a.done) - Number(b.done) ||
         byId.get(a.studyId)!.examDate.localeCompare(byId.get(b.studyId)!.examDate),
     );
+  const lateStudy = studies.find(
+    (s) =>
+      !closed.includes(s.id!) &&
+      needsPaceNotice(
+        s,
+        (data?.all ?? []).filter((d) => d.studyId === s.id),
+        today,
+      ),
+  );
   const activeExams = studies.filter((s) => s.examDate >= today).length;
 
   return (
@@ -118,6 +130,14 @@ export function Home() {
           );
         })}
       </section>
+
+      {lateStudy && (
+        <RhythmSheet
+          study={lateStudy}
+          days={(data?.all ?? []).filter((d) => d.studyId === lateStudy.id)}
+          onClose={() => setClosed([...closed, lateStudy.id!])}
+        />
+      )}
 
       <button type="button" className="fab" aria-label="Nuovo studio" onClick={() => go('/nuovo')}>
         <svg
