@@ -1556,3 +1556,131 @@ input {
   font-size: 12px;
   font-weight: 600;
 }
+
+/* ---------- benvenuta e impostazioni (Fase 4) ---------- */
+.welcome {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.welcome-hero {
+  background: var(--yellow);
+  border-radius: 0 0 48px 48px;
+  height: calc(250px + var(--safe-top));
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.welcome-hero .wb1 {
+  position: absolute;
+  left: -50px;
+  top: -40px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: var(--yellow-light);
+}
+.welcome-hero .wb2 {
+  position: absolute;
+  right: -30px;
+  bottom: -50px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: var(--yellow-light);
+}
+.sunflower {
+  position: relative;
+  margin-top: calc(var(--safe-top) + 20px);
+}
+.welcome-body {
+  padding: 22px 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+.welcome-body h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+.welcome-body .sub {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.steps li span {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.welcome .note {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.welcome .errors {
+  margin: 0;
+}
+.code-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.welcome-actions {
+  padding: 16px 24px calc(24px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.primary.bell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+}
+.settings .card {
+  gap: 10px;
+  font-weight: 600;
+}
+.sec-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8a5a00;
+}

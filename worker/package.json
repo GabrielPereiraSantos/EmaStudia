@@ -4,14 +4,19 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --test-scheduled",
     "deploy": "wrangler deploy",
-    "test": "vitest run"
+    "test": "vitest run",
+    "vapid": "node scripts/vapid.mjs",
+    "db:migrate:local": "wrangler d1 migrations apply ema-db --local",
+    "db:migrate": "wrangler d1 migrations apply ema-db --remote"
   },
   "dependencies": {
+    "@block65/webcrypto-web-push": "^2.0.0",
     "hono": "^4.13.17"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261110.1",
     "wrangler": "^4.160.0"
   }
 }

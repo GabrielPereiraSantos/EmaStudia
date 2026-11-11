@@ -1,4 +1,9 @@
 import { useEffect } from 'react';
+import { db } from './db/db';
+import { useLive } from './lib/useLive';
+import { startAutoSync } from './lib/sync';
+import { Benvenuta } from './pages/Benvenuta';
+import { Impostazioni } from './pages/Impostazioni';
 import { BottomNav } from './components/BottomNav';
 import { ensureSettings } from './db/db';
 import { awardCoins, dailyReplan } from './db/repo';
@@ -13,6 +18,27 @@ import { StudyPage } from './pages/StudyPage';
 
 export function App() {
   const route = useRoute();
+  const settings = useLive(() => db.settings.get(1), []);
+  const ready = settings?.welcomeDone === true;
+
+  // Agenda de notificações: sincroniza ao abrir e a cada mudança (depois da Benvenuta).
+  useEffect(() => (ready ? startAutoSync() : undefined), [ready]);
+
+  // Toque numa notificação com o app já aberto: o service worker pede a navegação.
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      const url = (e.data as { type?: string; url?: string } | null)?.url;
+      if (
+        (e.data as { type?: string })?.type === 'navigate' &&
+        typeof url === 'string' &&
+        url.startsWith('/#/')
+      ) {
+        location.hash = url.slice(1);
+      }
+    };
+    navigator.serviceWorker?.addEventListener('message', onMsg);
+    return () => navigator.serviceWorker?.removeEventListener('message', onMsg);
+  }, []);
   useEffect(() => {
     const run = () =>
       void ensureSettings()
@@ -45,8 +71,16 @@ export function App() {
   } else if (a === 'quiz') {
     tab = 'quiz';
     page = <Placeholder title="Quiz" />;
-  } else if (a === 'impostazioni') page = <Placeholder title="Impostazioni" back />;
+  } else if (a === 'impostazioni') page = <Impostazioni />;
   else page = <Home />;
+
+  if (!settings) return <div className="app" />;
+  if (!ready)
+    return (
+      <div className="app">
+        <Benvenuta />
+      </div>
+    );
 
   return (
     <div className="app">

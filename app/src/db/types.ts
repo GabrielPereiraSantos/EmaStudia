@@ -143,4 +143,6 @@ export interface Settings {
   lastBackupAt?: string;
   /** Último dia em que o plano foi refeito na primeira abertura. */
   lastDailyReplan?: ISODate;
+  /** Benvenuta concluída (código de acesso salvo). */
+  welcomeDone?: boolean;
 }

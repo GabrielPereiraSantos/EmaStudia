@@ -1,4 +1,5 @@
-# Copie para .dev.vars (ignorado pelo Git). Preencha nas fases 4 e 5.
-ACCESS_CODE=
-GEMINI_API_KEY=
+# Copie para .dev.vars (ignorado pelo Git) para rodar localmente.
+ACCESS_CODE=troque-este-codigo
 VAPID_PRIVATE_KEY=
+ALLOWED_ORIGIN=http://localhost:5173
+GEMINI_API_KEY=
