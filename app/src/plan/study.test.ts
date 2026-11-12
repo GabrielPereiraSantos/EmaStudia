@@ -7,7 +7,14 @@ import {
   STUDIED_SEC,
   totalSeconds,
 } from './study';
-import { formatClock, pauseTimer, resumeTimer, startTimer, timerView } from '../lib/timer';
+import {
+  formatClock,
+  nextPomodoro,
+  pauseTimer,
+  resumeTimer,
+  startTimer,
+  timerView,
+} from '../lib/timer';
 
 const cfg = { workMin: 25, breakMin: 5 };
 const MIN = 60_000;
@@ -47,8 +54,20 @@ describe('cronômetro (calculado pela hora, não por setInterval)', () => {
       studiedMs: 25 * MIN,
       phaseIndex: 1,
     });
-    const second = timerView(s, 40 * MIN, cfg);
-    expect(second).toMatchObject({ phase: 'studio', studiedMs: 35 * MIN, phaseIndex: 2 });
+    // depois da pausa o relógio para: não começa outro pomodoro sozinho
+    expect(timerView(s, 40 * MIN, cfg)).toMatchObject({
+      phase: 'pausa',
+      waitingNext: true,
+      studiedMs: 25 * MIN,
+    });
+    // "Inizia" começa o segundo pomodoro
+    const s2 = nextPomodoro(s, 40 * MIN, cfg);
+    expect(timerView(s2, 50 * MIN, cfg)).toMatchObject({
+      phase: 'studio',
+      studiedMs: 35 * MIN,
+      phaseIndex: 2,
+      waitingNext: false,
+    });
   });
 
   it('formata o relógio', () => {

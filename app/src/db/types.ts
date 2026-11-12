@@ -125,7 +125,10 @@ export interface CoinEntry {
   id?: number;
   date: ISODate;
   amount: number;
-  reason: 'giorno' | 'serie' | 'quiz' | 'premio';
+  /** 'giorno' = regra antiga (+10 por dia); hoje os dias não rendem moedas, só os pomodoros. */
+  reason: 'giorno' | 'pomodoro' | 'serie' | 'quiz' | 'premio';
+  /** Identidade da entrada, para não creditar duas vezes (ex.: pomo:<início da sessão>:<n>). */
+  ref?: string;
 }
 
 export interface Reward {
@@ -149,7 +152,10 @@ export interface Redemption {
 
 export interface Settings {
   id: 1;
-  coinsDay: number;
+  /** Moedinhas por pomodoro de estudo completo. */
+  coinsPomodoro: number;
+  /** Valor antigo (+X por dia estudado), só para migrar. */
+  coinsDay?: number;
   coinsStreak: number;
   coinsCorrect: number;
   pomodoroWork: number;

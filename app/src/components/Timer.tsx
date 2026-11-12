@@ -1,41 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { addSession } from '../db/repo';
 import { toISO } from '../lib/dates';
+import { cancelPomodoroAlert, settlePomodoro, syncPomodoroAlert } from '../lib/pomodoro';
+import { unlockSound } from '../lib/sound';
 import {
   formatClock,
-  loadTimer,
+  nextPomodoro,
   pauseTimer,
   resumeTimer,
-  saveTimer,
   startTimer,
   timerView,
   type TimerMode,
   type TimerState,
 } from '../lib/timer';
+import { setTimer, useTimerState } from '../lib/timerStore';
 
 const R = 92;
 const C = 2 * Math.PI * R;
-
-function beep() {
-  try {
-    const Ctx =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = 660;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.05);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.85);
-  } catch {
-    /* sem áudio: segue sem som */
-  }
-}
 
 interface Props {
   studyId: number;
@@ -47,15 +28,9 @@ interface Props {
 }
 
 export function Timer({ studyId, workMin, breakMin, otherStudy, onSaved }: Props) {
-  const [state, setState] = useState<TimerState | null>(loadTimer);
+  const state = useTimerState();
   const [now, setNow] = useState(Date.now());
   const [msg, setMsg] = useState('');
-  const lastPhase = useRef<{ index: number; at: number } | null>(null);
-
-  const update = useCallback((s: TimerState | null) => {
-    setState(s);
-    saveTimer(s);
-  }, []);
 
   // O relógio só redesenha; o tempo vem sempre de Date.now() − início.
   useEffect(() => {
@@ -73,29 +48,26 @@ export function Timer({ studyId, workMin, breakMin, otherStudy, onSaved }: Props
   const cfg = { workMin, breakMin };
   const view = mine ? timerView(mine, mine.running ? now : (mine.startedAt ?? now), cfg) : null;
 
-  // Aviso no fim de cada fase do pomodoro (só se o app estava à vista).
-  useEffect(() => {
-    if (!mine?.running || mine.mode !== 'pomodoro' || !view) return;
-    const prev = lastPhase.current;
-    if (prev && prev.index !== view.phaseIndex && now - prev.at < 3000) {
-      navigator.vibrate?.([200, 100, 200]);
-      beep();
-    }
-    lastPhase.current = { index: view.phaseIndex, at: now };
-  }, [now, mine?.running, mine?.mode, view?.phaseIndex]);
+  /** Muda o cronômetro e reagenda (ou cancela) a notificação de fim no Worker. */
+  const apply = (next: TimerState | null) => {
+    setTimer(next);
+    setNow(Date.now());
+    void syncPomodoroAlert(next);
+  };
 
   const begin = (mode: TimerMode) => {
     setMsg('');
-    lastPhase.current = null;
-    update(startTimer(studyId, mode, Date.now()));
-    setNow(Date.now());
+    if (mode === 'pomodoro') unlockSound(); // iOS: o som do fim só toca se liberado num toque
+    apply(startTimer(studyId, mode, Date.now()));
   };
 
   const stop = async () => {
     if (!mine) return;
+    await settlePomodoro(); // credita um pomodoro que tenha acabado antes do Stop
     const v = timerView(mine, Date.now(), cfg);
     const sec = Math.floor(v.studiedMs / 1000);
-    update(null);
+    setTimer(null);
+    void cancelPomodoroAlert();
     if (sec < 60) {
       setMsg('Sessione troppo breve (meno di 1 minuto): non salvata.');
       return;
@@ -123,16 +95,20 @@ export function Timer({ studyId, workMin, breakMin, otherStudy, onSaved }: Props
     : 0;
   const label = !view
     ? 'pomodoro'
-    : view.phase === 'pausa'
-      ? 'pausa'
-      : view.phase === 'libero'
-        ? 'libero'
-        : 'pomodoro';
+    : view.waitingNext
+      ? 'pausa finita'
+      : view.phase === 'pausa'
+        ? 'pausa'
+        : view.phase === 'libero'
+          ? 'libero'
+          : 'pomodoro';
   const sub = !view
     ? `su ${formatClock(workMin * 60_000)}`
-    : pomodoro
-      ? `su ${formatClock(total)}`
-      : 'tempo di studio';
+    : view.waitingNext
+      ? 'tocca Inizia per il prossimo'
+      : pomodoro
+        ? `su ${formatClock(total)}`
+        : 'tempo di studio';
 
   return (
     <section className="timer" aria-label="Cronometro">
@@ -190,7 +166,7 @@ export function Timer({ studyId, workMin, breakMin, otherStudy, onSaved }: Props
                 <button
                   type="button"
                   className="t-main"
-                  onClick={() => update(pauseTimer(mine, Date.now()))}
+                  onClick={() => apply(pauseTimer(mine, Date.now(), cfg))}
                 >
                   <svg
                     width="18"
@@ -208,8 +184,13 @@ export function Timer({ studyId, workMin, breakMin, otherStudy, onSaved }: Props
                   type="button"
                   className="t-main"
                   onClick={() => {
-                    update(resumeTimer(mine, Date.now()));
-                    setNow(Date.now());
+                    if (view?.waitingNext) {
+                      unlockSound();
+                      apply(nextPomodoro(mine, Date.now(), cfg));
+                    } else {
+                      if (mine.mode === 'pomodoro') unlockSound();
+                      apply(resumeTimer(mine, Date.now()));
+                    }
                   }}
                 >
                   <svg
@@ -221,7 +202,7 @@ export function Timer({ studyId, workMin, breakMin, otherStudy, onSaved }: Props
                   >
                     <path d="M8 5v14l11-7z" />
                   </svg>
-                  Riprendi
+                  {view?.waitingNext ? 'Inizia' : 'Riprendi'}
                 </button>
               )}
               <button type="button" className="t-soft" onClick={() => void stop()}>

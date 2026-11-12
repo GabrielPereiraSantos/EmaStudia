@@ -84,6 +84,7 @@ export async function deleteDevice(db: D1Database, deviceId: string) {
   await db.batch([
     db.prepare('DELETE FROM reminders WHERE device_id = ?').bind(deviceId),
     db.prepare('DELETE FROM notes WHERE device_id = ?').bind(deviceId),
+    db.prepare('DELETE FROM pomodoro_alerts WHERE device_id = ?').bind(deviceId),
     db.prepare('DELETE FROM devices WHERE device_id = ?').bind(deviceId),
   ]);
 }

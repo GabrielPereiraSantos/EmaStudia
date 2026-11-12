@@ -3,7 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { BackButton } from '../components/BackButton';
 import { ConfirmSheet } from '../components/ConfirmSheet';
-import { db } from '../db/db';
+import { coinsPerPomodoro, db } from '../db/db';
 import { readBackupFile, restoreBackup, saveBackup } from '../db/backupRepo';
 import { awardCoins, dailyReplan } from '../db/repo';
 import type { Settings } from '../db/types';
@@ -200,10 +200,10 @@ export function Impostazioni() {
           MONETINE
         </p>
         <Stepper
-          label="Giorno studiato (30 min)"
-          k="coinsDay"
-          value={settings.coinsDay}
-          onChange={(v) => void set({ coinsDay: v })}
+          label="Pomodoro completato"
+          k="coinsPomodoro"
+          value={coinsPerPomodoro(settings)}
+          onChange={(v) => void set({ coinsPomodoro: v })}
         />
         <Stepper
           label="7 giorni di fila"

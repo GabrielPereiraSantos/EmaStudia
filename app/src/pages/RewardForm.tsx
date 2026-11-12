@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { BackButton } from '../components/BackButton';
 import { ConfirmSheet } from '../components/ConfirmSheet';
 import { REWARD_ICONS, RewardIcon } from '../components/RewardIcon';
-import { db, DEFAULT_SETTINGS } from '../db/db';
+import { coinsPerPomodoro, db, DEFAULT_SETTINGS } from '../db/db';
 import { removeReward, saveReward } from '../db/repo';
 import type { Reward } from '../db/types';
 import { goUp } from '../lib/router';
-import { studyDaysFor } from '../plan/coins';
+import { pomodorosFor } from '../plan/coins';
 
 const SHORTCUTS = [50, 100, 200, 300];
 const STEP = 10;
@@ -17,14 +17,14 @@ export function RewardForm({ id }: { id?: number }) {
   const [icon, setIcon] = useState<Reward['icon']>('regalo');
   const [price, setPrice] = useState(100);
   const [repeatable, setRepeatable] = useState(true);
-  const [coinsDay, setCoinsDay] = useState(DEFAULT_SETTINGS.coinsDay);
+  const [perPomodoro, setPerPomodoro] = useState(DEFAULT_SETTINGS.coinsPomodoro);
   const [errors, setErrors] = useState<string[]>([]);
   const [askRemove, setAskRemove] = useState(false);
 
   useEffect(() => {
     void (async () => {
       const s = await db.settings.get(1);
-      if (s) setCoinsDay(s.coinsDay);
+      if (s) setPerPomodoro(coinsPerPomodoro(s));
       if (!id) return;
       const r = await db.rewards.get(id);
       if (r && !r.removed) {
@@ -37,7 +37,7 @@ export function RewardForm({ id }: { id?: number }) {
     })();
   }, [id]);
 
-  const days = studyDaysFor(price, coinsDay);
+  const pomodori = pomodorosFor(price, perPomodoro);
 
   const submit = async () => {
     const errs: string[] = [];
@@ -135,7 +135,7 @@ export function RewardForm({ id }: { id?: number }) {
             ))}
           </div>
           <p className="muted">
-            Circa {days} {days === 1 ? 'giorno' : 'giorni'} di studio
+            Circa {pomodori} {pomodori === 1 ? 'pomodoro' : 'pomodori'}
           </p>
         </div>
 

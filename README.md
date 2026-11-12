@@ -209,7 +209,7 @@ npm run deploy -w worker
 
 ### 11. Testar as notificações
 
-No app: engrenagem → **Impostazioni → Invia notifica di prova**. A notificação deve chegar em alguns segundos. Os lembretes normais saem no horário de cada estudo (o cron roda a cada 5 minutos; um lembrete atrasado mais de 2 h, ou de outro dia, não é enviado).
+No app: engrenagem → **Impostazioni → Invia notifica di prova**. A notificação deve chegar em alguns segundos. Os lembretes normais saem no horário de cada estudo (o cron roda a cada minuto; um lembrete atrasado mais de 2 h, ou de outro dia, não é enviado).
 
 Para ver os registros do Worker (só contagens, nunca o conteúdo das notas):
 
@@ -220,11 +220,19 @@ npx wrangler tail -c worker/wrangler.toml
 ### Atualizar depois
 
 - App: basta `git push`; o Pages publica sozinho.
-- Worker: `npm run deploy -w worker`. Se houver migração nova: `npm run db:migrate -w worker`.
+- Worker: `npm run db:migrate -w worker` (aplica só as migrações novas) e depois `npm run deploy -w worker`.
 
 **Como a Ema recebe a versão nova:** depois do deploy, ao abrir o app (ou voltar para ele) aparece no topo **"Nuova versione disponibile"** com o botão **Aggiorna**. Tocar em Aggiorna carrega a versão nova na hora; os dados não se perdem. O app procura versão nova a cada hora e toda vez que volta para a tela.
 
 Se ela estava numa versão **antiga** (anterior a esse aviso), a versão nova assume sozinha: basta fechar e abrir o app de novo. Se mesmo assim a tela não mudar: Ajustes do iPhone → Safari → Avançado → Dados de sites → apague só o endereço do app **depois de fazer o backup** (apagar o app ou os dados dele apaga os estudos).
+
+## Pomodoro: moedinhas, som e notificação
+
+- **Moedinhas:** cada pomodoro de estudo completo (fim dos 25 min, não da pausa) dá **+10** (Impostazioni → "Pomodoro completato"), com a animação "+10". Pausar e retomar conta normalmente; parar antes do fim não dá moedas. Depois da pausa o relógio para e espera "Inizia": um pomodoro esquecido rodando não fica rendendo moedas sozinho.
+- **Dia estudado (30 min):** não dá mais moedas, mas continua valendo para a carinha feliz e para a sequência (+30 a cada 7 dias). Modo Libero e "Aggiungi tempo" contam para os 30 min, sem moedas. As moedas antigas de "Giorno studiato" continuam no extrato.
+- **Som:** `app/public/sons/fim.mp3`, no cache offline. Toca no fim do estudo com o app na tela; no iPhone o áudio é liberado no toque em "Inizia".
+- **Notificação** (app fechado ou em segundo plano): "Pomodoro finito! +10 monetine 🌻 Fai una pausa, Ema." O app agenda no Worker ao iniciar ou retomar e cancela ao pausar ou parar. Se o pomodoro termina com o app na tela, o app toca o som e cancela a notificação, para ela não receber as duas coisas.
+- **Precisão:** o cron do Worker roda **a cada minuto** e envia 10 s depois do fim (margem para o cancelamento do app chegar). A notificação chega entre 10 s e ~70 s depois do fim. Escolhemos o cron por minuto por ser a solução gratuita mais simples: uma linha no `wrangler.toml`, sem infraestrutura nova (são 1.440 execuções por dia, bem dentro do plano gratuito). Um alarme de Durable Object daria precisão de segundos, mas exigiria uma classe nova, migração e binding, para ganhar menos de um minuto.
 
 ## Backup e restauração
 
@@ -240,7 +248,7 @@ Os dados da Ema ficam **só no iPhone dela** (Impostazioni → Backup).
 | -------------------------------------------------------------------------------- | ----------------------------- |
 | Código de acesso em **todas** as rotas (comparação em tempo constante)           | Worker                        |
 | Tentativas com código errado limitadas (10 por minuto)                           | Worker                        |
-| Limite por minuto: agenda 20, assinatura 10, notificação de prova 5              | Worker                        |
+| Limite por minuto: agenda 20, assinatura 10, notificação de prova 5, pomodoro 30 | Worker                        |
 | Limite diário do Gemini (`GEMINI_DAILY_LIMIT`) e limite de corpo (64 KB)         | Worker                        |
 | CORS só para o endereço do app (`ALLOWED_ORIGIN`)                                | Worker                        |
 | Entrada e resposta do Gemini validadas; textos mostrados como texto (nunca HTML) | Worker e app                  |

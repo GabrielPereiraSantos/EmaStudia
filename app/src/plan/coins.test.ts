@@ -10,48 +10,31 @@ import {
   scheduledDates,
   streakInCycle,
   studiedDates,
-  studyDaysFor,
+  pomodorosFor,
 } from './coins';
 
-const rules = { coinsDay: 10, coinsStreak: 30 };
+const rules = { coinsStreak: 30 };
 const S = (date: string, min: number) => ({ date, durationSec: min * 60 });
 const range = (from: number, n: number) =>
   Array.from({ length: n }, (_, i) => `2026-11-${String(from + i).padStart(2, '0')}`);
 const sched = (dates: string[]) => new Set(dates);
 
-describe('7 — dia estudado (30 min somando todos os estudos)', () => {
-  it('somar estudos diferentes: 20 + 10 min = +10, uma vez só', () => {
+describe('7 — dia estudado (30 min) não rende mais moedas, só conta para a sequência', () => {
+  it('30 min no dia (somando estudos e tempo manual) não geram moedas', () => {
     const sessions = [S('2026-11-10', 20), S('2026-11-10', 10)];
-    const a = computeAwards(sessions, sched(['2026-11-10']), [], rules, '2026-11-10');
-    expect(a).toEqual([{ date: '2026-11-10', amount: 10, reason: 'giorno' }]);
+    expect(computeAwards(sessions, sched(['2026-11-10']), [], rules, '2026-11-10')).toEqual([]);
+    expect(studiedDates(sessions).has('2026-11-10')).toBe(true); // mas o dia conta como estudado
   });
-  it('29 min 59 s não conta', () => {
-    expect(
-      computeAwards(
-        [{ date: '2026-11-10', durationSec: 1799 }],
-        sched([]),
-        [],
-        rules,
-        '2026-11-10',
-      ),
-    ).toEqual([]);
+  it('29 min 59 s não contam como dia estudado', () => {
+    expect(studiedDates([{ date: '2026-11-10', durationSec: 1799 }]).has('2026-11-10')).toBe(false);
   });
-  it('tempo manual conta igual ao do cronômetro, também em dia anterior', () => {
-    const a = computeAwards([S('2026-11-08', 45)], sched([]), [], rules, '2026-11-10');
-    expect(a).toHaveLength(1);
-    expect(a[0]).toMatchObject({ date: '2026-11-08', reason: 'giorno' });
-  });
-  it('é idempotente: rodar de novo não duplica', () => {
-    const sessions = [S('2026-11-10', 40)];
-    const first = computeAwards(sessions, sched([]), [], rules, '2026-11-10');
-    expect(computeAwards(sessions, sched([]), first, rules, '2026-11-10')).toEqual([]);
-    // mais uma sessão no mesmo dia: continua sendo um prêmio só
-    expect(
-      computeAwards([...sessions, S('2026-11-10', 30)], sched([]), first, rules, '2026-11-10'),
-    ).toEqual([]);
-  });
-  it('dia estudado sem nada programado também vale', () => {
+  it('dia estudado sem nada programado também vale (para a carinha e a sequência)', () => {
     expect(studiedDates([S('2026-11-12', 30)]).has('2026-11-12')).toBe(true);
+  });
+  it('moedas antigas de "Giorno studiato" continuam no extrato (nunca perde moedas)', () => {
+    const old = [{ date: '2026-11-01', amount: 10, reason: 'giorno' as const }];
+    expect(computeAwards([S('2026-11-01', 40)], sched([]), old, rules, '2026-11-02')).toEqual([]);
+    expect(balanceOf(old)).toBe(10);
   });
 });
 
@@ -68,7 +51,7 @@ describe('7 — sequência de 7 dias (+30 a cada 7)', () => {
     expect(a.filter((e) => e.reason === 'serie')).toEqual([
       { date: '2026-11-07', amount: 30, reason: 'serie' },
     ]);
-    expect(a.filter((e) => e.reason === 'giorno')).toHaveLength(7);
+    expect(a.filter((e) => e.reason === 'giorno')).toHaveLength(0); // o dia em si não rende mais
     const d14 = range(1, 14);
     const b = computeAwards(
       d14.map((d) => S(d, 30)),
@@ -174,10 +157,11 @@ describe('7 — prêmios e resgate', () => {
       reason: 'gone',
     });
   });
-  it('"Circa X giorni di studio"', () => {
-    expect(studyDaysFor(200, 10)).toBe(20);
-    expect(studyDaysFor(55, 10)).toBe(6);
-    expect(studyDaysFor(5, 10)).toBe(1);
+  it('"Circa X pomodori"', () => {
+    expect(pomodorosFor(200, 10)).toBe(20);
+    expect(pomodorosFor(55, 10)).toBe(6);
+    expect(pomodorosFor(5, 10)).toBe(1);
+    expect(pomodorosFor(50, 0)).toBe(0);
   });
 });
 

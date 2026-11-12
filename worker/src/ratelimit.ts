@@ -24,6 +24,8 @@ export const LIMITS_PER_MINUTE = {
   schedule: 20,
   subscription: 10,
   test: 5,
+  /** Agendar/cancelar a notificação de fim do pomodoro (iniciar, pausar, retomar…). */
+  pomodoro: 30,
   /** Tentativas com código de acesso errado (contra adivinhação). */
   badCode: 10,
 } as const;

@@ -12,7 +12,7 @@ import {
 
 const settings: Settings = {
   id: 1,
-  coinsDay: 10,
+  coinsPomodoro: 10,
   coinsStreak: 30,
   coinsCorrect: 5,
   pomodoroWork: 25,
@@ -110,7 +110,7 @@ describe('backup: ida e volta', () => {
     if (!r.ok) return;
     for (const t of TABLES) expect(r.backup.tables[t]).toEqual(tables()[t]);
     expect(r.backup.settings).toMatchObject({
-      coinsDay: 10,
+      coinsPomodoro: 10,
       pomodoroWork: 25,
       defaultReminder: '19:00',
       notifications: true,
@@ -150,7 +150,7 @@ describe('backup: arquivos inválidos', () => {
     expect(bad((b) => (b.tables.planDays[0].studyId = 99))).toMatchObject({ ok: false });
   });
   it('valores das moedinhas fora do limite', () => {
-    expect(bad((b) => (b.settings.coinsDay = 5000))).toMatchObject({ ok: false });
+    expect(bad((b) => (b.settings.coinsPomodoro = 5000))).toMatchObject({ ok: false });
   });
   it('arquivo gigante', () => {
     expect(parseBackup('x'.repeat(10 * 1024 * 1024 + 1))).toMatchObject({ ok: false });
@@ -172,10 +172,31 @@ describe('lembrete de backup (14 dias)', () => {
 
 describe('limites das configurações', () => {
   it('prende os valores no intervalo', () => {
-    expect(clampSetting('coinsDay', -3)).toBe(0);
-    expect(clampSetting('coinsDay', 5000)).toBe(999);
+    expect(clampSetting('coinsPomodoro', -3)).toBe(0);
+    expect(clampSetting('coinsPomodoro', 5000)).toBe(999);
     expect(clampSetting('pomodoroWork', 0)).toBe(1);
     expect(clampSetting('pomodoroBreak', 2.6)).toBe(3);
     expect(clampSetting('coinsStreak', NaN)).toBe(0);
+  });
+});
+
+describe('backup e a regra do pomodoro', () => {
+  it('backup antigo (com coinsDay) vira "Pomodoro completato"', () => {
+    const b = make();
+    delete b.settings.coinsPomodoro;
+    b.settings.coinsDay = 12;
+    const r = parseBackup(JSON.stringify(b));
+    expect(r.ok && r.backup.settings.coinsPomodoro).toBe(12);
+  });
+  it('aceita as moedinhas de pomodoro no extrato', () => {
+    const b = make();
+    b.tables.coins.push({
+      id: 2,
+      date: '2026-11-12',
+      amount: 10,
+      reason: 'pomodoro',
+      ref: 'pomo:2026-11-12T10:00:00.000Z:0',
+    });
+    expect(parseBackup(JSON.stringify(b)).ok).toBe(true);
   });
 });

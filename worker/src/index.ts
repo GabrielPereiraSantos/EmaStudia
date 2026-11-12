@@ -3,6 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { createMiddleware } from 'hono/factory';
 import { preflight, withCors } from './cors';
 import { runCron } from './cron';
+import { deleteAlert, parsePomodoroAlert, saveAlert } from './pomodoro';
 import { deleteDevice, dropSubscription, getDevice, saveSchedule, saveSubscription } from './db';
 import type { Env } from './env';
 import { sendPush } from './push';
@@ -107,6 +108,22 @@ app.post('/api/test-notification', limit('test'), async (c) => {
     return c.json({ error: 'subscription-expired' }, 410);
   }
   return res === 'ok' ? c.json({ ok: true }) : c.json({ error: 'push-failed' }, 502);
+});
+
+// ---------- notificação de fim do pomodoro ----------
+app.put('/api/pomodoro', limit('pomodoro'), async (c) => {
+  const now = Date.now();
+  const a = parsePomodoroAlert(await readJson(c), now);
+  if (!a) return c.json({ error: 'invalid' }, 400);
+  await saveAlert(c.env.DB, a, now);
+  return c.json({ ok: true, fireAt: a.endsAt });
+});
+
+app.delete('/api/pomodoro', limit('pomodoro'), async (c) => {
+  const body = (await readJson(c)) as { deviceId?: unknown } | null;
+  if (!body || !isDeviceId(body.deviceId)) return c.json({ error: 'invalid' }, 400);
+  await deleteAlert(c.env.DB, body.deviceId);
+  return c.json({ ok: true });
 });
 
 app.delete('/api/device', async (c) => {

@@ -40,9 +40,17 @@ export class EmaDB extends Dexie {
 
 export const db = new EmaDB();
 
+/** Moedinhas por pomodoro (com o valor antigo como reserva, para quem ainda não migrou). */
+export const coinsPerPomodoro = (s: Partial<Settings> | undefined): number =>
+  typeof s?.coinsPomodoro === 'number'
+    ? s.coinsPomodoro
+    : typeof s?.coinsDay === 'number'
+      ? s.coinsDay
+      : 10;
+
 export const DEFAULT_SETTINGS: Omit<Settings, 'deviceId'> = {
   id: 1,
-  coinsDay: 10,
+  coinsPomodoro: 10,
   coinsStreak: 30,
   coinsCorrect: 5,
   pomodoroWork: 25,
@@ -56,7 +64,15 @@ export const DEFAULT_SETTINGS: Omit<Settings, 'deviceId'> = {
 /** Primeira abertura: cria as Impostazioni e pede armazenamento persistente. */
 export async function ensureSettings(): Promise<Settings> {
   const existing = await db.settings.get(1);
-  if (existing) return existing;
+  if (existing) {
+    // migração: o valor "por dia estudado" vira o valor "por pomodoro completo"
+    if (typeof existing.coinsPomodoro !== 'number') {
+      const coinsPomodoro = coinsPerPomodoro(existing);
+      await db.settings.update(1, { coinsPomodoro });
+      return { ...existing, coinsPomodoro };
+    }
+    return existing;
+  }
   const s: Settings = { ...DEFAULT_SETTINGS, deviceId: crypto.randomUUID() };
   await db.settings.put(s);
   try {

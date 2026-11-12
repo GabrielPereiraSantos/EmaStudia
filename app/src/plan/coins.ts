@@ -3,7 +3,7 @@ import { addDaysISO, type ISODate } from '../lib/dates';
 import { STUDIED_SEC } from './study';
 
 export interface CoinRules {
-  coinsDay: number;
+  coinsPomodoro: number;
   coinsStreak: number;
   coinsCorrect: number;
 }
@@ -62,7 +62,11 @@ export const streakInCycle = (streak: number) =>
   streak === 0 ? 0 : ((streak - 1) % STREAK_CYCLE) + 1;
 
 /**
- * Novas entradas do extrato: +coinsDay uma vez por dia estudado e +coinsStreak a cada 7 dias
+ * Novas entradas do extrato pela sequência: +coinsStreak a cada 7 dias estudados seguidos
+ * (dia estudado = 30 min somando todos os estudos). O dia em si NÃO rende moedas: quem rende
+ * é cada pomodoro completo (veja pomodoroAward).
+ *
+ * Antes: +coinsDay uma vez por dia estudado e +coinsStreak a cada 7 dias
  * seguidos. Idempotente (não repete o que já está no extrato) e nunca remove nada:
  * ela nunca perde moedas, só deixa de ganhar.
  */
@@ -70,15 +74,12 @@ export function computeAwards(
   sessions: Pick<Session, 'date' | 'durationSec'>[],
   scheduled: Set<ISODate>,
   existing: Pick<CoinEntry, 'date' | 'reason'>[],
-  rules: Pick<CoinRules, 'coinsDay' | 'coinsStreak'>,
+  rules: Pick<CoinRules, 'coinsStreak'>,
   today: ISODate,
 ): CoinEntry[] {
   const has = new Set(existing.map((e) => `${e.reason}:${e.date}`));
   const studied = studiedDates(sessions);
   const out: CoinEntry[] = [];
-  for (const date of [...studied].filter((d) => d <= today).sort()) {
-    if (!has.has(`giorno:${date}`)) out.push({ date, amount: rules.coinsDay, reason: 'giorno' });
-  }
   for (const date of computeStreak(studied, scheduled, today).bonusDates) {
     if (!has.has(`serie:${date}`)) out.push({ date, amount: rules.coinsStreak, reason: 'serie' });
   }
@@ -109,6 +110,31 @@ export function redeem(
   };
 }
 
-/** "Circa X giorni di studio": preço / moedinhas por dia estudado. */
-export const studyDaysFor = (price: number, coinsDay: number) =>
-  coinsDay > 0 ? Math.max(1, Math.ceil(price / coinsDay)) : 0;
+/** "Circa X pomodori": preço / moedinhas por pomodoro completo. */
+export const pomodorosFor = (price: number, coinsPomodoro: number) =>
+  coinsPomodoro > 0 ? Math.max(1, Math.ceil(price / coinsPomodoro)) : 0;
+
+/** Referência única de um pomodoro (não credita duas vezes o mesmo). */
+export const pomodoroRef = (sessionStart: string, index: number) => `pomo:${sessionStart}:${index}`;
+
+/**
+ * Moedinhas dos pomodoros completos ainda não creditados: +coinsPomodoro por pomodoro de
+ * estudo completo. Modo Libero e "Aggiungi tempo" não passam por aqui (não rendem moedas).
+ */
+export function pomodoroAwards(
+  sessionStart: string,
+  completed: number,
+  alreadyAwarded: number,
+  existingRefs: Set<string>,
+  coinsPomodoro: number,
+  dateOf: (index: number) => string,
+): CoinEntry[] {
+  if (coinsPomodoro <= 0) return [];
+  const out: CoinEntry[] = [];
+  for (let k = alreadyAwarded; k < completed; k++) {
+    const ref = pomodoroRef(sessionStart, k);
+    if (!existingRefs.has(ref))
+      out.push({ date: dateOf(k), amount: coinsPomodoro, reason: 'pomodoro', ref });
+  }
+  return out;
+}

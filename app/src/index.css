@@ -2188,3 +2188,50 @@ textarea:focus-visible {
 .update-banner button:focus-visible {
   outline-color: var(--yellow-light);
 }
+
+/* ---------- +10 do pomodoro ---------- */
+.coin-burst {
+  position: fixed;
+  z-index: 70;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 10px 12px;
+  border-radius: 99px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(160, 110, 0, 0.3);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  pointer-events: none;
+  animation: moneta 1.8s ease-out forwards;
+}
+@keyframes moneta {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%) scale(0.7);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -70%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -90%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coin-burst {
+    animation: none;
+  }
+}

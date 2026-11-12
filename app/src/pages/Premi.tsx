@@ -3,7 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { ConfirmSheet } from '../components/ConfirmSheet';
 import { RewardIcon } from '../components/RewardIcon';
-import { db } from '../db/db';
+import { coinsPerPomodoro, db } from '../db/db';
 import { redeemReward } from '../db/repo';
 import type { Reward } from '../db/types';
 import { go } from '../lib/router';
@@ -13,6 +13,7 @@ import { STREAK_CYCLE } from '../plan/coins';
 
 const REASON: Record<string, string> = {
   giorno: 'Giorno studiato',
+  pomodoro: 'Pomodoro completato',
   serie: '7 giorni di fila',
   quiz: 'Risposte del quiz',
   premio: 'Premio riscattato',
@@ -151,8 +152,8 @@ export function Premi() {
         <section className="card earn" style={{ background: '#FFE597' }}>
           <p className="card-title">Come guadagnare</p>
           <div className="row-between">
-            <span>Giorno studiato (30 min)</span>
-            <strong>+{rules?.coinsDay ?? 10}</strong>
+            <span>Pomodoro completato</span>
+            <strong>+{coinsPerPomodoro(rules)}</strong>
           </div>
           <div className="row-between">
             <span>7 giorni di fila</span>

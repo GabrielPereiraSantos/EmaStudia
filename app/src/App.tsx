@@ -2,7 +2,10 @@ import { useEffect } from 'react';
 import { db } from './db/db';
 import { useLive } from './lib/useLive';
 import { startAutoSync } from './lib/sync';
+import { CoinBurst } from './components/CoinBurst';
 import { UpdateBanner } from './components/UpdateBanner';
+import { settlePomodoro } from './lib/pomodoro';
+import { getTimer } from './lib/timerStore';
 import { Benvenuta } from './pages/Benvenuta';
 import { Impostazioni } from './pages/Impostazioni';
 import { BottomNav } from './components/BottomNav';
@@ -23,6 +26,20 @@ export function App() {
   const route = useRoute();
   const settings = useLive(() => db.settings.get(1), []);
   const ready = settings?.welcomeDone === true;
+
+  // Pomodoro: credita moedinhas, toca o som e para no fim da pausa, em qualquer tela do app.
+  useEffect(() => {
+    const tick = () => {
+      if (getTimer()?.mode === 'pomodoro') void settlePomodoro();
+    };
+    tick();
+    const i = setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(i);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, []);
 
   // Agenda de notificações: sincroniza ao abrir e a cada mudança (depois da Benvenuta).
   useEffect(() => (ready ? startAutoSync() : undefined), [ready]);
@@ -93,6 +110,7 @@ export function App() {
   return (
     <div className="app">
       <UpdateBanner />
+      <CoinBurst />
       <main>{page}</main>
       {tab && <BottomNav active={tab} />}
     </div>

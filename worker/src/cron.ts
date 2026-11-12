@@ -7,6 +7,7 @@ import {
   pendingReminders,
 } from './db';
 import type { Env } from './env';
+import { runPomodoroAlerts } from './pomodoro';
 import { sendPush } from './push';
 import { cleanupRateLimits } from './ratelimit';
 import { buildMessage, isDue, localNow, ttlSeconds } from './reminders';
@@ -16,15 +17,20 @@ export interface CronReport {
   sent: number;
   gone: number;
   errors: number;
+  pomodoro?: { due: number; sent: number; dropped: number; errors: number };
 }
 
-/** Cron (a cada 5 min): envia os lembretes vencidos no fuso de cada aparelho. */
+/**
+ * Cron (a cada minuto): primeiro as notificações de fim de pomodoro (precisão de ~1 min),
+ * depois os lembretes de estudo vencidos no fuso de cada aparelho.
+ */
 export async function runCron(
   env: Env,
   nowMs: number,
   fetcher: typeof fetch = fetch,
 ): Promise<CronReport> {
   const report: CronReport = { devices: 0, sent: 0, gone: 0, errors: 0 };
+  report.pomodoro = await runPomodoroAlerts(env, nowMs, fetcher);
   const devices = await devicesWithPush(env.DB);
   for (const d of devices) {
     report.devices++;

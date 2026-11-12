@@ -174,7 +174,8 @@ const CHECKS: Record<TableName, (r: Row) => boolean> = {
     isInt(r.id, 1) &&
     isDate(r.date) &&
     isInt(r.amount, -1_000_000, 1_000_000) &&
-    ['giorno', 'serie', 'quiz', 'premio'].includes(r.reason as string),
+    ['giorno', 'pomodoro', 'serie', 'quiz', 'premio'].includes(r.reason as string) &&
+    optStr(r.ref, 200),
   rewards: (r) =>
     isInt(r.id, 1) &&
     isStr(r.name, 100) &&
@@ -187,7 +188,6 @@ const CHECKS: Record<TableName, (r: Row) => boolean> = {
 };
 
 const SETTINGS_RANGES: Record<string, [number, number]> = {
-  coinsDay: [0, 999],
   coinsStreak: [0, 999],
   coinsCorrect: [0, 999],
   pomodoroWork: [1, 180],
@@ -233,6 +233,9 @@ export function parseBackup(text: string): ParseResult {
   const s = data.settings as Row;
   for (const [k, [min, max]] of Object.entries(SETTINGS_RANGES))
     if (!isInt(s[k], min, max)) return { ok: false, error: BAD_FORMAT };
+  // coinsPomodoro (novo) ou coinsDay (backups feitos antes da regra do pomodoro)
+  const perPomodoro = typeof s.coinsPomodoro === 'number' ? s.coinsPomodoro : s.coinsDay;
+  if (!isInt(perPomodoro, 0, 999)) return { ok: false, error: BAD_FORMAT };
   if (typeof s.defaultReminder !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(s.defaultReminder))
     return { ok: false, error: BAD_FORMAT };
   if (!isBool(s.notifications) || !isBool(s.includeNotes)) return { ok: false, error: BAD_FORMAT };
@@ -252,7 +255,9 @@ export function parseBackup(text: string): ParseResult {
       exportedAt: typeof data.exportedAt === 'string' ? data.exportedAt : '',
       settings: {
         id: 1,
-        coinsDay: s.coinsDay as number,
+        coinsPomodoro: (typeof s.coinsPomodoro === 'number'
+          ? s.coinsPomodoro
+          : s.coinsDay) as number,
         coinsStreak: s.coinsStreak as number,
         coinsCorrect: s.coinsCorrect as number,
         pomodoroWork: s.pomodoroWork as number,
@@ -268,7 +273,7 @@ export function parseBackup(text: string): ParseResult {
 
 /** Limites dos valores editáveis em Impostazioni. */
 export const SETTING_LIMITS = {
-  coinsDay: { min: 0, max: 999, step: 1 },
+  coinsPomodoro: { min: 0, max: 999, step: 1 },
   coinsStreak: { min: 0, max: 999, step: 5 },
   coinsCorrect: { min: 0, max: 999, step: 1 },
   pomodoroWork: { min: 1, max: 180, step: 5 },

@@ -2,9 +2,10 @@ name = "ema-worker"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
-# Cron: a cada 5 minutos envia os lembretes vencidos.
+# Cron: a cada minuto envia o fim do pomodoro (precisão de ~1 min) e os lembretes vencidos.
+# Grátis: 1 execução por minuto = 1.440 por dia, bem abaixo do limite do plano gratuito.
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["* * * * *"]
 
 [[d1_databases]]
 binding = "DB"
